@@ -3,6 +3,69 @@
 Newest entry first. Each entry records what was done, what was verified,
 decisions taken and what remains.
 
+## 2026-11-12 — Phase 3 (part 1): encrypted storage, lock, accounts, transactions
+
+### Done
+- SQLCipher build spike: **failed** as anticipated (OpenSSL's build needs a
+  native Windows Perl; only Git's MSYS Perl is installed). Adopted the
+  documented fallback, in pure Rust.
+- `crypto.rs` — Argon2id (64 MiB, 3 passes) key derivation; XChaCha20-Poly1305
+  sealing with a fresh nonce per write; header bound as associated data;
+  hostile KDF parameters in a file header are rejected.
+- `vault.rs` — the SQLite database exists only in memory. One sealed file on
+  disk, replaced atomically (write temp, fsync, rename) after every committed
+  change. Create, unlock, lock, change passphrase. Failed unlocks are slowed
+  down. Failed changes roll back.
+- `db.rs` — migration 1 (accounts, categories, recurring_rules, transactions,
+  settings, seeded categories), strict validation, table-level CHECK
+  constraints, refusal to open a vault from a newer schema.
+- `commands.rs` — 13 typed commands; the webview cannot send SQL.
+- Interface: lock / create-vault screen (nothing of the app renders while
+  locked), auto-lock after 10 minutes idle, Transactions screen (add, edit,
+  delete, month navigation, type / account / category filters, search,
+  sorting, totals), Settings (accounts with live balances, custom categories,
+  archive, change passphrase, lock now). Dashboard now reads real records.
+- Amount inputs echo the parsed value ("Read as MAD 5,000.50").
+- Development builds honour `VAULT_DATA_DIR` so testing never touches the
+  real vault (ignored in release builds).
+
+### Verified
+- `cargo test`: 24 tests (round trip, wrong passphrase, tampering at four
+  positions, no plaintext on disk, rollback, passphrase change, validation).
+- `pnpm test`: 117 tests (5 new for transaction filtering). Typecheck, build,
+  clippy clean.
+- **End to end in the real Tauri window** (driven through WebView2's debug
+  port against a throwaway data folder): created a vault through the form,
+  added two accounts, recorded an expense, an income and a transfer, searched,
+  edited, deleted; dashboard showed MAD 14,680.00 available and MAD 24,000.00
+  savings, matching hand calculation. Locking removed the app from the page;
+  reads and writes returned `locked`; a wrong passphrase was refused; the
+  right one restored all records. The data folder held exactly one file,
+  starting `VAULTDB1`, with no readable text. Backend rejected a negative
+  amount, a fractional amount, an impossible date and a mismatched category
+  when the form was bypassed.
+
+### Decisions
+- Sealed-file storage instead of SQLCipher (ARCHITECTURE 5 and 9). Trade-offs
+  recorded there: whole-file rewrite per change, and freed pages are not wiped
+  from process memory.
+- Whole ledger is loaded into the interface on unlock and after each change;
+  the engine computes everything in TypeScript. Simple and fast at this size.
+- Accounts with transactions can be archived but not deleted.
+
+### Not done / open (rest of Phase 3)
+- Recurring transactions: table exists, but no posting, no UI.
+- CSV import and export.
+- Safe-to-spend budget; the dashboard's spending-limit panel is still a
+  placeholder. Goals panel waits for Phase 4.
+- Balance checkpoints (reconciliation), backup / restore, full export,
+  delete-everything.
+- Auto-lock on Windows session lock (only idle timeout exists).
+- Not verified: a full application restart between create and unlock in the
+  real window (covered by a Rust test with a fresh `Vault` value), and the
+  packaged release build.
+- PR 1 (Phase 2) is still open; this branch is stacked on it.
+
 ## 2026-11-12 — Phase 2: design, shell and Command Center
 
 ### Done

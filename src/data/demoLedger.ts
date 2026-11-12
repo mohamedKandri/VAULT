@@ -121,8 +121,8 @@ export function buildDemoLedger(today: IsoDate): Ledger {
 
   return {
     accounts: [
-      { id: "demo-current", name: "Current account", kind: "current", openingBalance: dirhams(4200), openingDate },
-      { id: "demo-savings", name: "Savings account", kind: "savings", openingBalance: dirhams(30_000), openingDate },
+      { id: "demo-current", name: "Current account", kind: "current", openingBalance: dirhams(4200), openingDate, archived: false },
+      { id: "demo-savings", name: "Savings account", kind: "savings", openingBalance: dirhams(30_000), openingDate, archived: false },
     ],
     categories,
     transactions,

@@ -34,7 +34,7 @@ export interface Route {
 
 export const ROUTES: Route[] = [
   { id: "command-center", label: "Command Center", icon: LayoutDashboard, group: "Overview", summary: "", phase: null },
-  { id: "transactions", label: "Transactions", icon: ArrowLeftRight, group: "Money", phase: 3,
+  { id: "transactions", label: "Transactions", icon: ArrowLeftRight, group: "Money", phase: null,
     summary: "Record income and expenses, manage categories and recurring items, search and filter history, import and export CSV." },
   { id: "simulator", label: "Savings Simulator", icon: SlidersHorizontal, group: "Planning", phase: 4,
     summary: "Change salary, expenses and contributions and see the effect over 3 to 24 months, under conservative, normal and aggressive assumptions." },
@@ -46,7 +46,7 @@ export const ROUTES: Route[] = [
     summary: "Projected balances from recurring income, expenses and planned purchases, with warnings when funds fall short." },
   { id: "assistant", label: "Assistant", icon: MessageSquareText, group: "Intelligence", phase: 5,
     summary: "Ask questions about your records. Optional, off by default, and every figure is traceable to a calculation." },
-  { id: "settings", label: "Settings", icon: Settings, group: "System", phase: 3,
+  { id: "settings", label: "Settings", icon: Settings, group: "System", phase: null,
     summary: "Passphrase and auto-lock, encrypted backup and restore, full export and deletion." },
 ];
 

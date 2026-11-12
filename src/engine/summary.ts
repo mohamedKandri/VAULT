@@ -33,6 +33,7 @@ export interface Transaction {
   /** Fixed commitment (true) or variable spending (false). Expenses only. */
   isFixed: boolean;
   description?: string;
+  notes?: string;
 }
 
 export const UNCATEGORIZED = "uncategorized";

@@ -299,3 +299,13 @@
 .rank__foot span {
   white-space: nowrap;
 }
+
+.norecords__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+  margin-top: var(--s3);
+}
+.norecords__card .norecords__actions .button {
+  margin-top: 0;
+}

@@ -9,10 +9,10 @@ import { UPCOMING_DAYS, buildDashboard, delta, type DashboardModel } from "./mod
 import "./dashboard.css";
 
 export function Dashboard() {
-  const { ledger, today, setDemo } = useLedger();
+  const { ledger, today, setDemo, status } = useLedger();
   const model = useMemo(() => buildDashboard(ledger, today), [ledger, today]);
 
-  if (!model.hasData) return <NoRecords onDemo={() => setDemo(true)} />;
+  if (!model.hasData) return <NoRecords onDemo={() => setDemo(true)} canRecord={status === "ready"} />;
 
   const months: ChartMonth[] = model.months.map((m) => ({
     key: m.month,
@@ -136,7 +136,7 @@ export function Dashboard() {
 
       <Panel title="Spending limit and financial health" className="dash__third" pending>
         <Pending icon={<Gauge size={18} strokeWidth={1.5} />} phase={3}>
-          Not calculated yet. The safe-to-spend figure needs your savings target and planned expenses, which are recorded in the next phase.
+          Not calculated yet. The safe-to-spend figure needs your savings target and scheduled expenses, which come with recurring transactions later in this phase.
         </Pending>
       </Panel>
     </div>
@@ -286,7 +286,7 @@ function Pending(props: { icon: React.ReactNode; phase?: number; children: React
   );
 }
 
-function NoRecords({ onDemo }: { onDemo: () => void }) {
+function NoRecords({ onDemo, canRecord }: { onDemo: () => void; canRecord: boolean }) {
   return (
     <div className="norecords">
       <div className="norecords__card">
@@ -294,16 +294,30 @@ function NoRecords({ onDemo }: { onDemo: () => void }) {
         <Money amount={null} size="hero" />
         <h2 className="norecords__title">No records yet</h2>
         <p className="norecords__body">
-          Every figure in VAULT is calculated from what you record, so there is nothing to show until you add accounts
-          and transactions. Recording and encrypted storage arrive in the next phase.
+          Every figure in VAULT is calculated from what you record, so there is nothing to show until you add an
+          account and its transactions.
         </p>
-        <p className="norecords__body">
-          Until then you can explore the interface with fictional sample data. It is clearly marked, kept in memory only,
-          and never mixed with real records.
-        </p>
-        <button className="button button--primary" onClick={onDemo}>
-          Explore with demo data
-        </button>
+        {canRecord ? (
+          <p className="norecords__body">
+            Start with the account your salary arrives in and its balance today. Or look around first with fictional
+            sample data: it is clearly marked, kept in memory only, and never mixed with your records.
+          </p>
+        ) : (
+          <p className="norecords__body">
+            The interface is running without its storage backend, so nothing can be saved. You can still explore it
+            with fictional sample data.
+          </p>
+        )}
+        <div className="norecords__actions">
+          {canRecord && (
+            <a className="button button--primary" href="#/settings">
+              Add your first account
+            </a>
+          )}
+          <button className={canRecord ? "button button--plain" : "button button--primary"} onClick={onDemo}>
+            Explore with demo data
+          </button>
+        </div>
       </div>
     </div>
   );
