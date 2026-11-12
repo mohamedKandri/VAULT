@@ -9,6 +9,7 @@
 //!   db        schema, migrations, validated queries
 //!   commands  the IPC surface
 
+mod ai;
 mod commands;
 mod crypto;
 mod db;
@@ -61,6 +62,10 @@ pub fn run() {
             commands::backup_export,
             commands::backup_restore,
             commands::vault_destroy,
+            commands::ai_status,
+            commands::ai_configure,
+            commands::ai_log,
+            commands::ai_chat,
         ])
         .run(tauri::generate_context!())
         .expect("error while running VAULT");

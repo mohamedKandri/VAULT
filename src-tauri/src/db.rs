@@ -110,6 +110,18 @@ const MIGRATIONS: &[&str] = &[
         PRIMARY KEY (goal_id, position)
     );
     "#,
+    // 4: audit log of requests to the optional local language model
+    r#"
+    CREATE TABLE ai_log (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        at            TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now')),
+        model         TEXT NOT NULL,
+        destination   TEXT NOT NULL,
+        bytes_sent    INTEGER NOT NULL,
+        tools_offered INTEGER NOT NULL,
+        ok            INTEGER NOT NULL
+    );
+    "#,
 ];
 
 pub fn configure(conn: &Connection) -> AppResult<()> {

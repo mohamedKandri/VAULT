@@ -44,7 +44,7 @@ export const ROUTES: Route[] = [
     summary: "Test a purchase before making it: what remains, how long recovery takes, and whether it puts goals at risk." },
   { id: "forecast", label: "Forecast", icon: LineChart, group: "Planning", phase: null,
     summary: "Projected balances from recurring income, expenses and planned purchases, with warnings when funds fall short." },
-  { id: "assistant", label: "Assistant", icon: MessageSquareText, group: "Intelligence", phase: 5,
+  { id: "assistant", label: "Assistant", icon: MessageSquareText, group: "Intelligence", phase: null,
     summary: "Ask questions about your records. Optional, off by default, and every figure is traceable to a calculation." },
   { id: "settings", label: "Settings", icon: Settings, group: "System", phase: null,
     summary: "Passphrase and auto-lock, encrypted backup and restore, full export and deletion." },

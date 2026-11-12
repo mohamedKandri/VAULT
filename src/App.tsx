@@ -3,6 +3,7 @@ import { ROUTES, useRoute } from "./app/routes";
 import { Shell } from "./app/Shell";
 import { LedgerProvider, useLedger } from "./data/LedgerContext";
 import { Affordability } from "./features/affordability/Affordability";
+import { Assistant } from "./features/assistant/Assistant";
 import { Dashboard } from "./features/dashboard/Dashboard";
 import { Forecast } from "./features/forecast/Forecast";
 import { Goals } from "./features/goals/Goals";
@@ -36,6 +37,8 @@ function Screen() {
         <Affordability />
       ) : route === "forecast" ? (
         <Forecast />
+      ) : route === "assistant" ? (
+        <Assistant />
       ) : (
         <Planned route={active} />
       )}

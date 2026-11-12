@@ -10,6 +10,7 @@ use zeroize::Zeroizing;
 
 use crate::db::{self, AccountInput, CategoryInput, DueOccurrence, Ledger, ScheduleInput, TransactionInput};
 use crate::error::{AppError, AppResult};
+use crate::ai;
 use crate::files;
 use crate::vault::Vault;
 
@@ -179,4 +180,47 @@ pub fn backup_restore(state: State<VaultState>, passphrase: String) -> AppResult
 pub fn vault_destroy(state: State<VaultState>, passphrase: String) -> AppResult<()> {
     let passphrase = Zeroizing::new(passphrase);
     locked(&state)?.destroy(&passphrase)
+}
+
+// ------------------------------------------------------- optional local AI
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AiStatus {
+    settings: ai::AiSettings,
+    /// Models installed on the local server; null when no server is running.
+    installed_models: Option<Vec<String>>,
+}
+
+#[tauri::command]
+pub fn ai_status(state: State<VaultState>) -> AppResult<AiStatus> {
+    let settings = locked(&state)?.read(ai::settings)?;
+    // Only look for a local server once the user has turned the feature on.
+    let installed_models = if settings.enabled { ai::installed_models(ai::LOCAL_ENDPOINT) } else { None };
+    Ok(AiStatus { settings, installed_models })
+}
+
+#[tauri::command]
+pub fn ai_configure(state: State<VaultState>, enabled: bool, model: String) -> AppResult<()> {
+    locked(&state)?.write(|conn| ai::configure(conn, enabled, &model))
+}
+
+#[tauri::command]
+pub fn ai_log(state: State<VaultState>) -> AppResult<Vec<ai::AiLogEntry>> {
+    locked(&state)?.read(ai::log)
+}
+
+/// One round with the local model. Refused unless the user enabled it.
+#[tauri::command]
+pub fn ai_chat(state: State<VaultState>, messages: serde_json::Value, tools: serde_json::Value) -> AppResult<ai::ChatReply> {
+    let settings = locked(&state)?.read(ai::settings)?;
+    if !settings.enabled {
+        return Err(AppError::invalid("The local model is turned off."));
+    }
+    // The vault lock is not held while waiting for the model.
+    let outcome = ai::chat(ai::LOCAL_ENDPOINT, &settings.model, &messages, &tools);
+    let sent = messages.to_string().len() + tools.to_string().len();
+    let offered = tools.as_array().map_or(0, Vec::len);
+    locked(&state)?.write(|conn| ai::record(conn, &settings.model, outcome.as_ref().map_or(sent, |(_, bytes)| *bytes), offered, outcome.is_ok()))?;
+    outcome.map(|(reply, _)| reply)
 }

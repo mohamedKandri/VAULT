@@ -158,6 +158,13 @@ export const api = {
   restoreBackup: (passphrase: string) => call<string | null>("backup_restore", { passphrase }),
   destroyVault: (passphrase: string) => call<void>("vault_destroy", { passphrase }),
 
+  aiStatus: () => call<{ settings: { enabled: boolean; model: string; endpoint: string }; installedModels: string[] | null }>("ai_status"),
+  aiConfigure: (enabled: boolean, model: string) => call<void>("ai_configure", { enabled, model }),
+  aiLog: () => call<{ at: string; model: string; destination: string; bytesSent: number; toolsOffered: number; ok: boolean }[]>("ai_log"),
+  /** One round with the local model. Only works when the user has turned it on. */
+  aiChat: (messages: unknown[], tools: unknown[]) =>
+    call<{ content: string; tool_calls: { name: string; arguments: unknown }[] }>("ai_chat", { messages, tools }),
+
   saveGoal: (id: string | null, input: GoalInput) => call<string>("goal_save", { id, input }),
   deleteGoal: (id: string) => call<void>("goal_delete", { id }),
 };
