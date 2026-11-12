@@ -22,7 +22,7 @@ derived from what the user records. That one fact shapes the data model
 | Financial engine | Pure TypeScript (`src/engine`) | See 3.1. |
 | Storage | SQLite + SQLCipher, via `rusqlite` in Rust | Whole-database encryption at rest. See 5. |
 | Server state | TanStack Query over Tauri commands | Caching and invalidation without a hand-rolled store. |
-| Charts | SVG built on `d3-scale`/`d3-shape` | Full control over the visual language; no template-looking chart library defaults. Decided finally in Phase 2. |
+| Charts | Hand-written SVG (`src/ui/charts`), no chart library | Full control over the visual language and no dependency; the scale and tick maths is ~20 lines. Colours are validated for colour-blind separation. |
 | Tests | Vitest (engine), `cargo test` (storage, crypto) | |
 | AI (optional) | Ollama on localhost by default; cloud provider opt-in | See 6. |
 
@@ -209,7 +209,7 @@ The language model never does arithmetic and never sees the raw database.
 | Phase | Scope | Exit criteria |
 |---|---|---|
 | 1 Architecture | This document, scaffold, engine primitives | Tests green; app compiles. |
-| 2 Design | Tokens, typography, shell, navigation, lock screen, dashboard layout, chart primitives | Dashboard renders from engine output on demo DB; reviewed in the running app. |
+| 2 Design | Tokens, typography, shell, navigation, dashboard, chart primitives, labelled demo ledger | Dashboard renders from engine output on the demo ledger; reviewed in the running UI. (Lock screen moved to Phase 3: a lock with no encryption behind it would be theatre.) |
 | 3 Financial core | SQLCipher storage, migrations, lock/unlock, accounts, transactions CRUD, categories, recurring posting, search/filter/sort, CSV import/export, budget ("safe to spend") | Round-trip tests in Rust; engine tests for budget; data survives restart; wrong passphrase rejected. |
 | 4 Intelligence | Projection engine, savings simulator, goals with ownership costs, goal comparison, affordability calculator, forecast with warnings, insights | Each calculation unit-tested against hand-worked examples. |
 | 5 AI | Tool layer, Ollama provider, cloud provider + disclosure + audit log | Assistant answers match engine output in tests; app fully usable with AI off and network disabled. |
