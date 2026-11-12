@@ -189,3 +189,32 @@
 a.button {
   text-decoration: none;
 }
+
+.tx > .segmented {
+  align-self: flex-start;
+}
+.recurring {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+.recurring__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s5);
+}
+.recurring__head p {
+  color: var(--text-2);
+  max-width: 62ch;
+}
+.recurring__actions {
+  width: 1%;
+  text-align: right;
+}
+.recurring__actions .icon-button {
+  display: inline-grid;
+}
+.tx__table tr.is-paused td {
+  color: var(--text-3);
+}

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { today as readToday, type IsoDate } from "../engine";
+import { dueOccurrences, today as readToday, type IsoDate } from "../engine";
 import { api, hasBackend } from "./api";
 import { buildDemoLedger } from "./demoLedger";
 import { EMPTY_LEDGER, type Ledger } from "./ledger";
@@ -40,7 +40,17 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   const [isDemo, setDemo] = useState(false);
   const today = useMemo(() => readToday(), []);
 
-  const reload = useCallback(async () => setStored(await api.loadLedger()), []);
+  // Loading also records any recurring items that have come due since last time.
+  const reload = useCallback(async () => {
+    let ledger = await api.loadLedger();
+    const due = dueOccurrences(ledger.schedules, today);
+    const behind = ledger.schedules.some((s) => !s.postedThrough || s.postedThrough < today);
+    if (due.length > 0 || behind) {
+      await api.postDue(due, today);
+      ledger = await api.loadLedger();
+    }
+    setStored(ledger);
+  }, [today]);
 
   useEffect(() => {
     if (!hasBackend) return;

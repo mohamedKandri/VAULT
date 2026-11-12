@@ -1,10 +1,11 @@
-import { CalendarClock, Gauge, Target } from "lucide-react";
+import { CalendarClock, Target } from "lucide-react";
 import { useMemo } from "react";
 import { useLedger } from "../../data/LedgerContext";
 import { formatBps, formatMAD, ratioBps, type Centimes } from "../../engine";
 import { MonthChart, type ChartMonth } from "../../ui/charts/MonthChart";
 import { dayMonth, monthLong, monthShort } from "../../ui/format";
 import { Delta, LegendKey, Money, Panel, Sparkline } from "../../ui/primitives";
+import { BudgetPanel } from "./BudgetPanel";
 import { UPCOMING_DAYS, buildDashboard, delta, type DashboardModel } from "./model";
 import "./dashboard.css";
 
@@ -134,11 +135,7 @@ export function Dashboard() {
         </Pending>
       </Panel>
 
-      <Panel title="Spending limit and financial health" className="dash__third" pending>
-        <Pending icon={<Gauge size={18} strokeWidth={1.5} />} phase={3}>
-          Not calculated yet. The safe-to-spend figure needs your savings target and scheduled expenses, which come with recurring transactions later in this phase.
-        </Pending>
-      </Panel>
+      <BudgetPanel />
     </div>
   );
 }

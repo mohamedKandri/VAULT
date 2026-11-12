@@ -6,3 +6,4 @@ export * from "./recurrence";
 export * from "./summary";
 export * from "./balances";
 export * from "./schedule";
+export * from "./budget";

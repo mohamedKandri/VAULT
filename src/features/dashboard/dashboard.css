@@ -309,3 +309,89 @@
 .norecords__card .norecords__actions .button {
   margin-top: 0;
 }
+
+/* Spending limit */
+.budget__figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+.budget__state {
+  font-size: var(--fs-small);
+  font-weight: 550;
+}
+.budget__state--ok { color: var(--positive-ink); }
+.budget__state--warn { color: var(--caution); }
+.budget__state--bad { color: var(--negative); }
+.budget__meter {
+  height: 6px;
+  margin: var(--s3) 0 var(--s2);
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.budget__fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  transition: width var(--slow) var(--ease);
+}
+.budget__fill--ok { background: var(--positive); }
+.budget__fill--warn { background: var(--caution); }
+.budget__fill--bad { background: var(--negative); }
+.budget__caption,
+.budget__basis {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+.budget__toggle {
+  align-self: flex-start;
+  margin-top: var(--s3);
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  text-decoration: underline;
+  text-decoration-color: var(--hairline-strong);
+  text-underline-offset: 3px;
+}
+.budget__toggle:hover { color: var(--text-1); }
+.budget__lines {
+  width: 100%;
+  margin-top: var(--s2);
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+}
+.budget__lines th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--text-2);
+  padding: 3px 0;
+}
+.budget__lines td {
+  text-align: right;
+  color: var(--text-1);
+}
+.budget__total th,
+.budget__total td {
+  border-top: 1px solid var(--hairline-strong);
+  padding-top: 6px;
+  font-weight: 550;
+  color: var(--text-1);
+}
+.health {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s3);
+  margin: var(--s5) 0 var(--s2);
+  padding-top: var(--s4);
+  border-top: 1px solid var(--hairline);
+}
+.health dt {
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+}
+.health dd {
+  margin: 2px 0 0;
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}

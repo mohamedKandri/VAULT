@@ -8,7 +8,7 @@ use serde::Serialize;
 use tauri::State;
 use zeroize::Zeroizing;
 
-use crate::db::{self, AccountInput, CategoryInput, Ledger, TransactionInput};
+use crate::db::{self, AccountInput, CategoryInput, DueOccurrence, Ledger, ScheduleInput, TransactionInput};
 use crate::error::{AppError, AppResult};
 use crate::vault::Vault;
 
@@ -88,6 +88,22 @@ pub fn category_set_archived(state: State<VaultState>, id: String, archived: boo
 #[tauri::command]
 pub fn transaction_save(state: State<VaultState>, id: Option<String>, input: TransactionInput) -> AppResult<String> {
     locked(&state)?.write(|conn| db::save_transaction(conn, id.as_deref(), &input))
+}
+
+#[tauri::command]
+pub fn schedule_save(state: State<VaultState>, id: Option<String>, input: ScheduleInput) -> AppResult<String> {
+    locked(&state)?.write(|conn| db::save_schedule(conn, id.as_deref(), &input))
+}
+
+#[tauri::command]
+pub fn schedule_delete(state: State<VaultState>, id: String) -> AppResult<()> {
+    locked(&state)?.write(|conn| db::delete_schedule(conn, &id))
+}
+
+/// Post the occurrences the engine found due, up to and including `through`.
+#[tauri::command]
+pub fn schedule_post_due(state: State<VaultState>, due: Vec<DueOccurrence>, through: String) -> AppResult<usize> {
+    locked(&state)?.write(|conn| db::post_due(conn, &due, &through))
 }
 
 #[tauri::command]

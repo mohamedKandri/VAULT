@@ -86,6 +86,8 @@ const MIGRATIONS: &[&str] = &[
         ('cat-bills',         'Bills',             'expense', 1, 6),
         ('cat-other',         'Other',             'expense', 0, 7);
     "#,
+    // 2: recurring rules remember how far they have been posted
+    "ALTER TABLE recurring_rules ADD COLUMN posted_through TEXT;",
 ];
 
 pub fn configure(conn: &Connection) -> AppResult<()> {
@@ -194,6 +196,48 @@ pub struct Ledger {
     pub accounts: Vec<Account>,
     pub categories: Vec<Category>,
     pub transactions: Vec<Transaction>,
+    pub schedules: Vec<Schedule>,
+}
+
+/// A recurring transaction: a template plus a recurrence rule. Occurrence
+/// dates are computed by the engine (TypeScript); this side stores the rule
+/// and posts the occurrences it is told are due, at most once each.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Schedule {
+    pub id: String,
+    pub account_id: String,
+    pub kind: String,
+    pub amount: i64,
+    pub category_id: Option<String>,
+    pub transfer_account_id: Option<String>,
+    pub description: String,
+    pub is_fixed: bool,
+    pub frequency: String,
+    pub interval: i64,
+    pub start_date: String,
+    pub end_date: Option<String>,
+    pub paused: bool,
+    pub posted_through: Option<String>,
+}
+
+/// `template.date` is the rule's start date (its first occurrence).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ScheduleInput {
+    pub template: TransactionInput,
+    pub frequency: String,
+    pub interval: i64,
+    pub end_date: Option<String>,
+    #[serde(default)]
+    pub paused: bool,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DueOccurrence {
+    pub schedule_id: String,
+    pub date: String,
 }
 
 // ------------------------------------------------------------ validation
@@ -499,11 +543,116 @@ pub fn delete_transaction(conn: &Connection, id: &str) -> AppResult<()> {
     if changed == 0 { Err(AppError::NotFound) } else { Ok(()) }
 }
 
+// -------------------------------------------------------------- schedules
+
+pub fn list_schedules(conn: &Connection) -> AppResult<Vec<Schedule>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, account_id, kind, amount, category_id, transfer_account_id, description, is_fixed,
+                frequency, interval, start_date, end_date, paused, posted_through
+         FROM recurring_rules ORDER BY start_date, id",
+    )?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(Schedule {
+                id: row.get(0)?,
+                account_id: row.get(1)?,
+                kind: row.get(2)?,
+                amount: row.get(3)?,
+                category_id: row.get(4)?,
+                transfer_account_id: row.get(5)?,
+                description: row.get(6)?,
+                is_fixed: row.get(7)?,
+                frequency: row.get(8)?,
+                interval: row.get(9)?,
+                start_date: row.get(10)?,
+                end_date: row.get(11)?,
+                paused: row.get(12)?,
+                posted_through: row.get(13)?,
+            })
+        })?
+        .collect::<Result<_, _>>()?;
+    Ok(rows)
+}
+
+pub fn save_schedule(conn: &Connection, id: Option<&str>, input: &ScheduleInput) -> AppResult<String> {
+    let t = check_transaction(conn, &input.template)?;
+    if !matches!(input.frequency.as_str(), "weekly" | "monthly" | "yearly") {
+        return Err(AppError::invalid("Unknown frequency."));
+    }
+    if !(1..=120).contains(&input.interval) {
+        return Err(AppError::invalid("The interval must be between 1 and 120."));
+    }
+    if let Some(end) = input.end_date.as_deref() {
+        if !is_valid_date(end) || end < t.date.as_str() {
+            return Err(AppError::invalid("The end date must be a valid date on or after the start date."));
+        }
+    }
+    match id {
+        Some(id) => {
+            let changed = conn.execute(
+                "UPDATE recurring_rules SET account_id = ?2, kind = ?3, amount = ?4, category_id = ?5,
+                    transfer_account_id = ?6, description = ?7, is_fixed = ?8, frequency = ?9, interval = ?10,
+                    start_date = ?11, end_date = ?12, paused = ?13 WHERE id = ?1",
+                params![id, t.account_id, t.kind, t.amount, t.category_id, t.transfer_account_id, t.description,
+                    t.is_fixed, input.frequency, input.interval, t.date, input.end_date, input.paused],
+            )?;
+            if changed == 0 { Err(AppError::NotFound) } else { Ok(id.to_string()) }
+        }
+        None => {
+            let id = new_id();
+            conn.execute(
+                "INSERT INTO recurring_rules (id, account_id, kind, amount, category_id, transfer_account_id,
+                    description, is_fixed, frequency, interval, start_date, end_date, paused)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                params![id, t.account_id, t.kind, t.amount, t.category_id, t.transfer_account_id, t.description,
+                    t.is_fixed, input.frequency, input.interval, t.date, input.end_date, input.paused],
+            )?;
+            Ok(id)
+        }
+    }
+}
+
+/// Removes the rule. Transactions it already posted are kept.
+pub fn delete_schedule(conn: &Connection, id: &str) -> AppResult<()> {
+    let changed = conn.execute("DELETE FROM recurring_rules WHERE id = ?1", [id])?;
+    if changed == 0 { Err(AppError::NotFound) } else { Ok(()) }
+}
+
+/// Record due occurrences as real transactions and mark every rule as posted
+/// through `through`. Idempotent: an occurrence is never posted twice, and
+/// one the user later deletes is not recreated.
+pub fn post_due(conn: &Connection, due: &[DueOccurrence], through: &str) -> AppResult<usize> {
+    if !is_valid_date(through) {
+        return Err(AppError::invalid("Invalid posting date."));
+    }
+    let mut posted = 0;
+    for item in due {
+        if !is_valid_date(&item.date) || item.date.as_str() > through {
+            return Err(AppError::invalid("Invalid occurrence date."));
+        }
+        posted += conn.execute(
+            "INSERT OR IGNORE INTO transactions (id, account_id, date, kind, amount, category_id,
+                transfer_account_id, description, is_fixed, recurring_rule_id, occurrence_date)
+             SELECT ?1, account_id, ?3, kind, amount, category_id, transfer_account_id, description, is_fixed, id, ?3
+             FROM recurring_rules
+             WHERE id = ?2 AND paused = 0 AND ?3 >= start_date AND (end_date IS NULL OR ?3 <= end_date)
+               AND (posted_through IS NULL OR ?3 > posted_through)",
+            params![new_id(), item.schedule_id, item.date],
+        )?;
+    }
+    conn.execute(
+        "UPDATE recurring_rules SET posted_through = ?1 WHERE posted_through IS NULL OR posted_through < ?1",
+        [through],
+    )?;
+    Ok(posted)
+}
+
 pub fn load_ledger(conn: &Connection) -> AppResult<Ledger> {
     Ok(Ledger {
         accounts: list_accounts(conn)?,
         categories: list_categories(conn)?,
         transactions: list_transactions(conn)?,
+        schedules: list_schedules(conn)?,
     })
 }
 
@@ -664,6 +813,61 @@ mod tests {
         assert!(list_accounts(&conn).unwrap().iter().any(|a| a.id == current && a.archived));
         delete_account(&conn, &spare).unwrap();
         assert_eq!(list_accounts(&conn).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn schedules_post_once_and_never_resurrect_deleted_occurrences() {
+        let conn = db();
+        let current = account(&conn, "Current", "current");
+        let mut template = expense(&current, 380_000);
+        template.date = "2026-09-02".into();
+        template.category_id = Some("cat-rent".into());
+        let input = ScheduleInput { template, frequency: "monthly".into(), interval: 1, end_date: None, paused: false };
+        let id = save_schedule(&conn, None, &input).unwrap();
+
+        let due = |dates: &[&str]| -> Vec<DueOccurrence> {
+            dates.iter().map(|d| DueOccurrence { schedule_id: id.clone(), date: (*d).into() }).collect()
+        };
+        let three = ["2026-09-02", "2026-10-02", "2026-11-02"];
+        assert_eq!(post_due(&conn, &due(&three), "2026-11-12").unwrap(), 3);
+        assert_eq!(post_due(&conn, &due(&three), "2026-11-12").unwrap(), 0); // same request again
+        assert_eq!(list_transactions(&conn).unwrap().len(), 3);
+        assert_eq!(list_schedules(&conn).unwrap()[0].posted_through.as_deref(), Some("2026-11-12"));
+
+        // The user deletes one; it must not come back.
+        let victim = list_transactions(&conn).unwrap()[0].id.clone();
+        delete_transaction(&conn, &victim).unwrap();
+        assert_eq!(post_due(&conn, &due(&["2026-11-02"]), "2026-11-13").unwrap(), 0);
+        assert_eq!(list_transactions(&conn).unwrap().len(), 2);
+
+        // Next month posts normally; a date beyond `through` is refused.
+        assert_eq!(post_due(&conn, &due(&["2026-12-02"]), "2026-12-05").unwrap(), 1);
+        assert!(post_due(&conn, &due(&["2027-01-02"]), "2026-12-06").is_err());
+
+        // Deleting the rule keeps its history.
+        delete_schedule(&conn, &id).unwrap();
+        assert_eq!(list_transactions(&conn).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn schedule_validation_and_pause() {
+        let conn = db();
+        let current = account(&conn, "Current", "current");
+        let make = |frequency: &str, interval: i64, end: Option<&str>, paused: bool| ScheduleInput {
+            template: expense(&current, 1000),
+            frequency: frequency.into(),
+            interval,
+            end_date: end.map(Into::into),
+            paused,
+        };
+        assert!(save_schedule(&conn, None, &make("daily", 1, None, false)).is_err());
+        assert!(save_schedule(&conn, None, &make("monthly", 0, None, false)).is_err());
+        assert!(save_schedule(&conn, None, &make("monthly", 1, Some("2026-01-01"), false)).is_err());
+        let id = save_schedule(&conn, None, &make("weekly", 2, Some("2027-01-01"), true)).unwrap();
+        // Paused rules do not post, but still advance, so resuming does not backfill.
+        let due = vec![DueOccurrence { schedule_id: id.clone(), date: "2026-11-12".into() }];
+        assert_eq!(post_due(&conn, &due, "2026-11-20").unwrap(), 0);
+        assert_eq!(list_schedules(&conn).unwrap()[0].posted_through.as_deref(), Some("2026-11-20"));
     }
 
     #[test]

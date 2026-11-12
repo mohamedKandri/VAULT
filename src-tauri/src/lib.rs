@@ -48,6 +48,9 @@ pub fn run() {
             commands::category_set_archived,
             commands::transaction_save,
             commands::transaction_delete,
+            commands::schedule_save,
+            commands::schedule_delete,
+            commands::schedule_post_due,
         ])
         .run(tauri::generate_context!())
         .expect("error while running VAULT");

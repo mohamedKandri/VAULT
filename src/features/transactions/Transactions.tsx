@@ -15,10 +15,29 @@ import { Segmented } from "../../ui/forms";
 import { dayMonth, monthLong } from "../../ui/format";
 import { Money } from "../../ui/primitives";
 import { queryTransactions, type SortKey, type TransactionRow } from "./filter";
+import { Recurring } from "./Recurring";
 import { TransactionDialog } from "./TransactionDialog";
 import "./transactions.css";
 
 export function Transactions() {
+  const [view, setView] = useState<"history" | "recurring">("history");
+  return (
+    <div className="tx">
+      <Segmented
+        label="View"
+        value={view}
+        onChange={setView}
+        options={[
+          { value: "history", label: "History" },
+          { value: "recurring", label: "Recurring" },
+        ]}
+      />
+      {view === "history" ? <History /> : <Recurring />}
+    </div>
+  );
+}
+
+function History() {
   const { ledger, today, canEdit, isDemo } = useLedger();
   const [month, setMonth] = useState<YearMonth | null>(monthOf(today));
   const [kind, setKind] = useState<TransactionKind | "all">("all");
@@ -67,7 +86,7 @@ export function Transactions() {
   }
 
   return (
-    <div className="tx">
+    <>
       <div className="tx__toolbar">
         <div className="tx__month">
           <button className="icon-button" onClick={() => setMonth(addMonthsToYearMonth(month ?? monthOf(today), -1))} aria-label="Previous month">
@@ -155,7 +174,7 @@ export function Transactions() {
       )}
 
       {dialog && <TransactionDialog transaction={dialog.transaction} onClose={() => setDialog(null)} />}
-    </div>
+    </>
   );
 }
 

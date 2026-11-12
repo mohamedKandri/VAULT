@@ -4,7 +4,7 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { centimes, type AccountKind, type Centimes, type IsoDate, type TransactionKind } from "../engine";
+import { centimes, type AccountKind, type Centimes, type DueOccurrence, type Frequency, type IsoDate, type TransactionKind } from "../engine";
 import type { Ledger } from "./ledger";
 
 /** False when the interface runs in a plain browser (UI development) with no Rust backend. */
@@ -59,12 +59,26 @@ export interface TransactionInput {
   isFixed: boolean;
 }
 
+export interface ScheduleInput {
+  /** `template.date` is the first occurrence. */
+  template: TransactionInput;
+  frequency: Frequency;
+  interval: number;
+  endDate: IsoDate | null;
+  paused: boolean;
+}
+
 interface RawLedger {
   accounts: { id: string; name: string; kind: AccountKind; openingBalance: number; openingDate: string; archived: boolean }[];
   categories: { id: string; name: string; kind: "income" | "expense"; isFixedDefault: boolean; archived: boolean }[];
   transactions: {
     id: string; accountId: string; date: string; kind: TransactionKind; amount: number;
     categoryId: string | null; transferAccountId: string | null; description: string; notes: string; isFixed: boolean;
+  }[];
+  schedules: {
+    id: string; accountId: string; kind: TransactionKind; amount: number; categoryId: string | null;
+    transferAccountId: string | null; description: string; isFixed: boolean; frequency: Frequency; interval: number;
+    startDate: string; endDate: string | null; paused: boolean; postedThrough: string | null;
   }[];
 }
 
@@ -74,7 +88,19 @@ function toLedger(raw: RawLedger): Ledger {
     accounts: raw.accounts.map((a) => ({ ...a, openingBalance: centimes(a.openingBalance) })),
     categories: raw.categories,
     transactions: raw.transactions.map((t) => ({ ...t, amount: centimes(t.amount) })),
-    schedules: [],
+    schedules: raw.schedules.map((s) => ({
+      id: s.id,
+      rule: { frequency: s.frequency, interval: s.interval, startDate: s.startDate, endDate: s.endDate },
+      accountId: s.accountId,
+      kind: s.kind,
+      amount: centimes(s.amount),
+      categoryId: s.categoryId,
+      transferAccountId: s.transferAccountId,
+      description: s.description,
+      isFixed: s.isFixed,
+      paused: s.paused,
+      postedThrough: s.postedThrough,
+    })),
   };
 }
 
@@ -96,4 +122,8 @@ export const api = {
 
   saveTransaction: (id: string | null, input: TransactionInput) => call<string>("transaction_save", { id, input }),
   deleteTransaction: (id: string) => call<void>("transaction_delete", { id }),
+
+  saveSchedule: (id: string | null, input: ScheduleInput) => call<string>("schedule_save", { id, input }),
+  deleteSchedule: (id: string) => call<void>("schedule_delete", { id }),
+  postDue: (due: DueOccurrence[], through: IsoDate) => call<number>("schedule_post_due", { due, through }),
 };
