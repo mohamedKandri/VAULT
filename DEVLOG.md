@@ -3,6 +3,75 @@
 Newest entry first. Each entry records what was done, what was verified,
 decisions taken and what remains.
 
+## 2026-11-12 — Phases 3 (completion), 4, 5 and 6
+
+### Phase 4 — Intelligence (done)
+- Engine: `projection.ts` (savings projection, three visible scenarios),
+  `goals.ts` (price + one-off costs + ownership costs, required monthly
+  saving, on-track), `affordability.ts` (explicit thresholds, verdict with
+  reasons), `forecast.ts` (month-end balances from schedules, a stated
+  variable-spending figure and planned purchases, with warnings).
+- Storage: goals and their cost lines (migration 3).
+- Screens: Savings Simulator (sliders, 3/6/12/24/custom months, target line,
+  scenario table), Purchase Goals (cards, side-by-side comparison),
+  Affordability (verdict, reasons, the rules shown), Forecast (with / without
+  planned purchases). Dashboard goals panel.
+
+### Phase 3 — completion (done)
+- CSV export (with spreadsheet-formula guard) and import with a preview:
+  rows to add, duplicates skipped, unreadable lines with reasons, new
+  categories. Import is all-or-nothing.
+- Encrypted backup, restore (verified in memory first; previous vault kept),
+  full JSON export behind an "unencrypted" warning, delete-everything behind
+  the passphrase and a typed confirmation.
+- Balance reconciliation: compare with the real balance, record the gap.
+- File dialogs are opened by Rust; the webview never handles a path.
+- Health indicators now key off account opening dates (fixes the known issue).
+
+### Phase 5 — Assistant (done, with one limit)
+- Nine tools over the engine; the only source of figures in any answer.
+- Built-in answers: common questions recognised and answered with no AI.
+- Any number in an answer that appears in no tool result is flagged.
+- Optional local model through Ollama: off by default, loopback address
+  fixed in Rust, disclosure in the interface, request audit log (migration 4).
+- **Limit:** Ollama is not installed on this machine. The model path is
+  tested against a simulated server (request shape, tool-call parsing, error
+  messages) and with a scripted model in the tool loop. It has never run
+  against a real model. A cloud provider was not built.
+
+### Phase 6 — Security review and delivery
+Reviewed against ARCHITECTURE section 5:
+
+| Control | State |
+|---|---|
+| Encryption at rest, no plaintext on disk | Done, tested (Rust + real window) |
+| Lock = key dropped; auto-lock on idle | Done. **Not done:** lock on Windows session lock |
+| Wrong passphrase / tampering refused | Done, tested |
+| Webview isolation: CSP, core-only capabilities | Done. No fs, shell, http or dialog plugin |
+| Typed commands only, no SQL from the webview | Done (29 commands) |
+| Network | None, except the opt-in loopback model gateway |
+| Telemetry, analytics, update checks | None exist |
+| Backup / restore / export / delete | Done, tested |
+| Secrets in the frontend | None. No API keys exist anywhere |
+| Decrypted pages wiped from memory | **Not done** (SQLite frees them unwiped) |
+
+Residual risks, accepted: software running as the same Windows user while
+VAULT is unlocked can read its memory, and WebView2 honours its debugging
+environment variable; the passphrase passes through the webview once on entry.
+The installer is unsigned, so SmartScreen will warn. App icons are still the
+Tauri defaults.
+
+### Verified
+- `cargo test` 40, `pnpm test` 187; typecheck, build clean.
+- In the real Tauri window (throwaway data folder): goal creation with cost
+  lines, dashboard goal, affordability, forecast; batch import and its
+  all-or-nothing rule; reconciliation (gap of MAD 1,000.50 recorded, balance
+  then MAD 14,000.00); delete-everything refused with a wrong passphrase and,
+  with the right one, leaving an empty folder and the setup screen.
+- Not driven end to end: the native file dialogs (export, import picker,
+  backup, restore). Their logic is covered by Rust tests.
+- Release build and installer: see the end of this entry.
+
 ## 2026-11-12 — Phase 3 (part 2): recurring items, spending limit, health
 
 ### Done

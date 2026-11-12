@@ -24,7 +24,7 @@ derived from what the user records. That one fact shapes the data model
 | Server state | TanStack Query over Tauri commands | Caching and invalidation without a hand-rolled store. |
 | Charts | Hand-written SVG (`src/ui/charts`), no chart library | Full control over the visual language and no dependency; the scale and tick maths is ~20 lines. Colours are validated for colour-blind separation. |
 | Tests | Vitest (engine), `cargo test` (storage, crypto) | |
-| AI (optional) | Ollama on localhost by default; cloud provider opt-in | See 6. |
+| AI (optional) | Built-in answers with no AI; optional Ollama on localhost. No cloud provider is built. | See 6. |
 
 ## 3. Structure
 
@@ -186,7 +186,7 @@ The language model never does arithmetic and never sees the raw database.
 - **Off by default.** Every feature except the chat works without it; insights
   on the dashboard are deterministic engine output, not AI.
 - **Local first:** Ollama on `127.0.0.1`. Nothing leaves the machine.
-- **Cloud is opt-in**, with a disclosure of what is sent (the question and the
+- **Cloud: not built.** If added later it must be opt-in, with a disclosure of what is sent (the question and the
   aggregated results of the tools invoked — not the transaction table), and an
   audit log of every outbound request.
 - Framed as explanation and suggestion, never certified financial advice.
