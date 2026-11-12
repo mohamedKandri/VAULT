@@ -70,7 +70,14 @@ Tauri defaults.
   with the right one, leaving an empty folder and the setup screen.
 - Not driven end to end: the native file dialogs (export, import picker,
   backup, restore). Their logic is covered by Rust tests.
-- Release build and installer: see the end of this entry.
+- Release build: `pnpm tauri build` succeeded and produced
+  `src-tauri/target/release/bundle/nsis/VAULT_0.1.0_x64-setup.exe` (about 3 MB).
+  The packaged executable was started once, read-only: it showed the lock
+  screen, rendered nothing of the app while locked, refused data and AI
+  commands with `locked`, loaded the bundled font, and ignored the
+  development-only `VAULT_DATA_DIR` setting.
+- **Not verified:** running the installer itself, or installing on a clean
+  Windows profile.
 
 ## 2026-11-12 — Phase 3 (part 2): recurring items, spending limit, health
 
