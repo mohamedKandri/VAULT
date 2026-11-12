@@ -34,3 +34,9 @@ export function axisAmount(amount: Centimes): string {
   if (abs >= 10_000) return `${trim(dirhams / 1000)}K`;
   return Math.round(dirhams).toLocaleString("en-US");
 }
+
+/** "September 2027" */
+export function monthYear(date: IsoDate): string {
+  const { year, month } = parseIsoDate(date);
+  return `${MONTHS[month - 1]} ${year}`;
+}

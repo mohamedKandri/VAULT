@@ -107,6 +107,16 @@ pub fn schedule_post_due(state: State<VaultState>, due: Vec<DueOccurrence>, thro
 }
 
 #[tauri::command]
+pub fn goal_save(state: State<VaultState>, id: Option<String>, input: db::GoalInput) -> AppResult<String> {
+    locked(&state)?.write(|conn| db::save_goal(conn, id.as_deref(), &input))
+}
+
+#[tauri::command]
+pub fn goal_delete(state: State<VaultState>, id: String) -> AppResult<()> {
+    locked(&state)?.write(|conn| db::delete_goal(conn, &id))
+}
+
+#[tauri::command]
 pub fn transaction_delete(state: State<VaultState>, id: String) -> AppResult<()> {
     locked(&state)?.write(|conn| db::delete_transaction(conn, &id))
 }

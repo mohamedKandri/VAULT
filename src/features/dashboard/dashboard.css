@@ -395,3 +395,17 @@
   font-weight: 550;
   font-variant-numeric: tabular-nums;
 }
+
+.dashgoal {
+  padding: var(--s2) 0;
+}
+.dashgoal .goal__progress {
+  margin-bottom: var(--s2);
+}
+.panel__link {
+  color: var(--text-2);
+  text-underline-offset: 3px;
+}
+.panel__link:hover {
+  color: var(--text-1);
+}

@@ -4,7 +4,16 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { centimes, type AccountKind, type Centimes, type DueOccurrence, type Frequency, type IsoDate, type TransactionKind } from "../engine";
+import {
+  centimes,
+  type AccountKind,
+  type Centimes,
+  type DueOccurrence,
+  type Frequency,
+  type Goal,
+  type IsoDate,
+  type TransactionKind,
+} from "../engine";
 import type { Ledger } from "./ledger";
 
 /** False when the interface runs in a plain browser (UI development) with no Rust backend. */
@@ -68,7 +77,13 @@ export interface ScheduleInput {
   paused: boolean;
 }
 
+export type GoalInput = Omit<Goal, "id">;
+
 interface RawLedger {
+  goals: (Omit<Goal, "targetPrice" | "savedAmount" | "monthlyContribution" | "costs"> & {
+    targetPrice: number; savedAmount: number; monthlyContribution: number;
+    costs: { label: string; amount: number; frequency: Goal["costs"][number]["frequency"] }[];
+  })[];
   accounts: { id: string; name: string; kind: AccountKind; openingBalance: number; openingDate: string; archived: boolean }[];
   categories: { id: string; name: string; kind: "income" | "expense"; isFixedDefault: boolean; archived: boolean }[];
   transactions: {
@@ -101,6 +116,13 @@ function toLedger(raw: RawLedger): Ledger {
       paused: s.paused,
       postedThrough: s.postedThrough,
     })),
+    goals: raw.goals.map((g) => ({
+      ...g,
+      targetPrice: centimes(g.targetPrice),
+      savedAmount: centimes(g.savedAmount),
+      monthlyContribution: centimes(g.monthlyContribution),
+      costs: g.costs.map((c) => ({ ...c, amount: centimes(c.amount) })),
+    })),
   };
 }
 
@@ -126,4 +148,7 @@ export const api = {
   saveSchedule: (id: string | null, input: ScheduleInput) => call<string>("schedule_save", { id, input }),
   deleteSchedule: (id: string) => call<void>("schedule_delete", { id }),
   postDue: (due: DueOccurrence[], through: IsoDate) => call<number>("schedule_post_due", { due, through }),
+
+  saveGoal: (id: string | null, input: GoalInput) => call<string>("goal_save", { id, input }),
+  deleteGoal: (id: string) => call<void>("goal_delete", { id }),
 };

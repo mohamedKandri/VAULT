@@ -127,5 +127,27 @@ export function buildDemoLedger(today: IsoDate): Ledger {
     categories,
     transactions,
     schedules,
+    goals: [
+      {
+        id: "demo-g-moto", name: "Motorcycle", targetPrice: dirhams(25_000), savedAmount: dirhams(9500),
+        targetDate: day(addMonthsToYearMonth(currentMonth, 8), 15), monthlyContribution: dirhams(2000), priority: 1, status: "active",
+        costs: [
+          { label: "Registration", amount: dirhams(1200), frequency: "once" },
+          { label: "Insurance", amount: dirhams(2400), frequency: "yearly" },
+          { label: "Fuel", amount: dirhams(400), frequency: "monthly" },
+          { label: "Maintenance", amount: dirhams(1800), frequency: "yearly" },
+        ],
+      },
+      {
+        id: "demo-g-car", name: "Car", targetPrice: dirhams(65_000), savedAmount: dirhams(12_000),
+        targetDate: null, monthlyContribution: dirhams(2000), priority: 2, status: "active",
+        costs: [
+          { label: "Registration", amount: dirhams(3500), frequency: "once" },
+          { label: "Insurance", amount: dirhams(4800), frequency: "yearly" },
+          { label: "Fuel", amount: dirhams(1200), frequency: "monthly" },
+          { label: "Maintenance", amount: dirhams(3600), frequency: "yearly" },
+        ],
+      },
+    ],
   };
 }

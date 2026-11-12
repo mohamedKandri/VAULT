@@ -7,3 +7,7 @@ export * from "./summary";
 export * from "./balances";
 export * from "./schedule";
 export * from "./budget";
+export * from "./projection";
+export * from "./goals";
+export * from "./affordability";
+export * from "./forecast";

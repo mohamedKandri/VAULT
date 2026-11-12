@@ -51,6 +51,8 @@ pub fn run() {
             commands::schedule_save,
             commands::schedule_delete,
             commands::schedule_post_due,
+            commands::goal_save,
+            commands::goal_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running VAULT");

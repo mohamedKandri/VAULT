@@ -39,6 +39,8 @@ interface Props {
   height?: number;
   /** Accessible summary of what the chart shows. */
   label: string;
+  /** Horizontal reference line, e.g. a savings target. */
+  reference?: { value: Centimes; label: string } | null;
 }
 
 const MARGIN = { top: 10, right: 12, bottom: 24, left: 46 };
@@ -86,12 +88,13 @@ function columnPath(x: number, baseline: number, width: number, end: number) {
   ].join("");
 }
 
-export function MonthChart({ kind, months, series, height = 220, label }: Props) {
+export function MonthChart({ kind, months, series, height = 220, label, reference }: Props) {
   const [ref, width] = useWidth();
   const [hover, setHover] = useState<number | null>(null);
   const tableId = useId();
 
   const all = series.flatMap((s) => s.values).filter((v): v is Centimes => v !== null);
+  if (reference) all.push(reference.value);
   const scale = niceScale(Math.min(0, ...all), Math.max(0, ...all));
   const plotWidth = Math.max(0, width - MARGIN.left - MARGIN.right);
   const plotHeight = height - MARGIN.top - MARGIN.bottom;
@@ -187,6 +190,14 @@ export function MonthChart({ kind, months, series, height = 220, label }: Props)
             <line x1={centre(hover)} x2={centre(hover)} y1={MARGIN.top} y2={MARGIN.top + plotHeight} stroke="var(--hairline-strong)" />
           )}
           {marks()}
+          {reference && (
+            <g>
+              <line x1={MARGIN.left} x2={width - MARGIN.right} y1={y(reference.value)} y2={y(reference.value)} stroke="var(--text-3)" />
+              <text x={width - MARGIN.right} y={y(reference.value) - 6} textAnchor="end" className="chart__tick chart__tick--on">
+                {reference.label}
+              </text>
+            </g>
+          )}
           {months.map((month, i) =>
             (months.length - 1 - i) % labelEvery === 0 ? (
               <text key={month.key} x={centre(i)} y={height - 6} textAnchor="middle" className={`chart__tick ${hover === i ? "chart__tick--on" : ""}`}>

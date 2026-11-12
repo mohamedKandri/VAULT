@@ -117,6 +117,8 @@ export interface Health {
   monthsUsed: number;
   averageIncome: Centimes | null;
   averageExpenses: Centimes | null;
+  /** Average non-fixed spending per month. */
+  averageVariable: Centimes | null;
   /** Net worth divided by average monthly expenses, in tenths of a month (35 = 3.5 months). */
   coverTenths: number | null;
   /** Average fixed expenses as a share of average income, basis points. */
@@ -136,7 +138,8 @@ export function financialHealth(
   today: IsoDate,
 ): Health {
   const current = monthOf(today);
-  const dates = [...accounts.map((a) => a.openingDate), ...transactions.map((t) => t.date)].sort();
+  // Tracking starts when the first account was opened; without accounts, at the first record.
+  const dates = (accounts.length > 0 ? accounts.map((a) => a.openingDate) : transactions.map((t) => t.date)).sort();
   const months: YearMonth[] = [];
   for (let i = 1; i <= 3; i++) {
     const m = addMonthsToYearMonth(current, -i);
@@ -144,7 +147,7 @@ export function financialHealth(
     if (dates.length > 0 && dates[0] <= monthBounds(m).start) months.push(m);
   }
   if (months.length === 0) {
-    return { monthsUsed: 0, averageIncome: null, averageExpenses: null, coverTenths: null, fixedShareBps: null, savingsRateBps: null };
+    return { monthsUsed: 0, averageIncome: null, averageExpenses: null, averageVariable: null, coverTenths: null, fixedShareBps: null, savingsRateBps: null };
   }
   const summaries = months.map((m) => summarizeMonth(transactions, m));
   const income = sum(summaries.map((s) => s.income));
@@ -158,6 +161,7 @@ export function financialHealth(
     monthsUsed: months.length,
     averageIncome: mulRatio(income, 1, months.length),
     averageExpenses,
+    averageVariable: mulRatio(sub(expenses, fixed), 1, months.length),
     coverTenths: cover === null ? null : Math.round(cover / 1000),
     fixedShareBps: ratioBps(fixed, income),
     savingsRateBps: ratioBps(sub(income, expenses), income),

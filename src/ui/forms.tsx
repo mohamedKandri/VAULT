@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { MoneyError, formatMAD, parseAmount, type Centimes } from "../engine";
+import { MoneyError, dirhams, formatMAD, parseAmount, type Centimes } from "../engine";
 import "./forms.css";
 
 /** Modal built on the native <dialog>: focus trap and Esc come for free. */
@@ -125,4 +125,56 @@ export function useSubmit(action: () => Promise<void>) {
     }
   };
   return { busy, error, submit, setError };
+}
+
+/**
+ * Amount input bound to a Centimes value, with an optional slider for quick
+ * what-if changes. While focused it keeps the text as typed; otherwise it
+ * shows the formatted value. Invalid text leaves the last valid value in place.
+ */
+export function MoneyInput(props: {
+  label: string;
+  value: Centimes;
+  onChange: (value: Centimes) => void;
+  /** Slider upper bound in whole dirhams; omit for no slider. */
+  sliderMax?: number;
+  step?: number;
+  hint?: ReactNode;
+  disabled?: boolean;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? formatMAD(props.value, { code: false, decimals: "auto" });
+  const { error } = draft === null ? { error: null } : readAmount(draft);
+  const whole = Math.round(props.value / 100);
+  return (
+    <Field label={props.label} hint={props.hint} error={error}>
+      <input
+        className="input tnum"
+        inputMode="decimal"
+        value={shown}
+        disabled={props.disabled}
+        onFocus={() => setDraft(formatMAD(props.value, { code: false, decimals: "auto" }).replace(/,/g, ""))}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          const parsed = readAmount(event.target.value).value;
+          if (parsed !== null && parsed >= 0) props.onChange(parsed);
+        }}
+        onBlur={() => setDraft(null)}
+        autoComplete="off"
+      />
+      {props.sliderMax !== undefined && (
+        <input
+          className="slider"
+          type="range"
+          min={0}
+          max={Math.max(props.sliderMax, whole)}
+          step={props.step ?? 100}
+          value={whole}
+          disabled={props.disabled}
+          aria-label={`${props.label} slider`}
+          onChange={(event) => props.onChange(dirhams(Number(event.target.value)))}
+        />
+      )}
+    </Field>
+  );
 }

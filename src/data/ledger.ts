@@ -1,4 +1,4 @@
-import type { Account, Schedule, Transaction } from "../engine";
+import type { Account, Goal, Schedule, Transaction } from "../engine";
 
 export interface LedgerAccount extends Account {
   /** Hidden from pickers; its history still counts in balances. */
@@ -20,6 +20,7 @@ export interface Ledger {
   categories: Category[];
   transactions: Transaction[];
   schedules: Schedule[];
+  goals: Goal[];
 }
 
-export const EMPTY_LEDGER: Ledger = { accounts: [], categories: [], transactions: [], schedules: [] };
+export const EMPTY_LEDGER: Ledger = { accounts: [], categories: [], transactions: [], schedules: [], goals: [] };

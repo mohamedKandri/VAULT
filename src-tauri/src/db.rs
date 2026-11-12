@@ -88,6 +88,28 @@ const MIGRATIONS: &[&str] = &[
     "#,
     // 2: recurring rules remember how far they have been posted
     "ALTER TABLE recurring_rules ADD COLUMN posted_through TEXT;",
+    // 3: purchase goals and their ownership costs
+    r#"
+    CREATE TABLE goals (
+        id                   TEXT PRIMARY KEY,
+        name                 TEXT NOT NULL CHECK (length(trim(name)) > 0),
+        target_price         INTEGER NOT NULL CHECK (target_price > 0),
+        saved_amount         INTEGER NOT NULL DEFAULT 0 CHECK (saved_amount >= 0),
+        target_date          TEXT,
+        monthly_contribution INTEGER NOT NULL DEFAULT 0 CHECK (monthly_contribution >= 0),
+        priority             INTEGER NOT NULL DEFAULT 1 CHECK (priority BETWEEN 1 AND 99),
+        status               TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','achieved','archived')),
+        created_at           TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+    );
+    CREATE TABLE goal_costs (
+        goal_id   TEXT NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+        position  INTEGER NOT NULL,
+        label     TEXT NOT NULL CHECK (length(trim(label)) > 0),
+        amount    INTEGER NOT NULL CHECK (amount > 0),
+        frequency TEXT NOT NULL CHECK (frequency IN ('once','monthly','yearly')),
+        PRIMARY KEY (goal_id, position)
+    );
+    "#,
 ];
 
 pub fn configure(conn: &Connection) -> AppResult<()> {
@@ -197,6 +219,43 @@ pub struct Ledger {
     pub categories: Vec<Category>,
     pub transactions: Vec<Transaction>,
     pub schedules: Vec<Schedule>,
+    pub goals: Vec<Goal>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalCost {
+    pub label: String,
+    pub amount: i64,
+    pub frequency: String,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Goal {
+    pub id: String,
+    pub name: String,
+    pub target_price: i64,
+    pub saved_amount: i64,
+    pub target_date: Option<String>,
+    pub monthly_contribution: i64,
+    pub priority: i64,
+    pub status: String,
+    pub costs: Vec<GoalCost>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GoalInput {
+    pub name: String,
+    pub target_price: i64,
+    pub saved_amount: i64,
+    pub target_date: Option<String>,
+    pub monthly_contribution: i64,
+    pub priority: i64,
+    pub status: String,
+    #[serde(default)]
+    pub costs: Vec<GoalCost>,
 }
 
 /// A recurring transaction: a template plus a recurrence rule. Occurrence
@@ -647,12 +706,117 @@ pub fn post_due(conn: &Connection, due: &[DueOccurrence], through: &str) -> AppR
     Ok(posted)
 }
 
+// ------------------------------------------------------------------ goals
+
+pub fn list_goals(conn: &Connection) -> AppResult<Vec<Goal>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, name, target_price, saved_amount, target_date, monthly_contribution, priority, status
+         FROM goals ORDER BY priority, created_at, id",
+    )?;
+    let mut goals: Vec<Goal> = stmt
+        .query_map([], |row| {
+            Ok(Goal {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                target_price: row.get(2)?,
+                saved_amount: row.get(3)?,
+                target_date: row.get(4)?,
+                monthly_contribution: row.get(5)?,
+                priority: row.get(6)?,
+                status: row.get(7)?,
+                costs: Vec::new(),
+            })
+        })?
+        .collect::<Result<_, _>>()?;
+    let mut costs = conn.prepare("SELECT label, amount, frequency FROM goal_costs WHERE goal_id = ?1 ORDER BY position")?;
+    for goal in &mut goals {
+        goal.costs = costs
+            .query_map([&goal.id], |row| Ok(GoalCost { label: row.get(0)?, amount: row.get(1)?, frequency: row.get(2)? }))?
+            .collect::<Result<_, _>>()?;
+    }
+    Ok(goals)
+}
+
+pub fn save_goal(conn: &Connection, id: Option<&str>, input: &GoalInput) -> AppResult<String> {
+    let name = clean_name(&input.name)?;
+    if input.target_price <= 0 || input.target_price > MAX_AMOUNT {
+        return Err(AppError::invalid("The target price must be greater than zero."));
+    }
+    if !(0..=MAX_AMOUNT).contains(&input.saved_amount) || !(0..=MAX_AMOUNT).contains(&input.monthly_contribution) {
+        return Err(AppError::invalid("Saved amount and monthly contribution cannot be negative."));
+    }
+    if let Some(date) = input.target_date.as_deref() {
+        if !is_valid_date(date) {
+            return Err(AppError::invalid("The target date is not a valid date."));
+        }
+    }
+    if !(1..=99).contains(&input.priority) {
+        return Err(AppError::invalid("Priority must be between 1 and 99."));
+    }
+    if !matches!(input.status.as_str(), "active" | "achieved" | "archived") {
+        return Err(AppError::invalid("Unknown goal status."));
+    }
+    if input.costs.len() > 40 {
+        return Err(AppError::invalid("Too many cost lines."));
+    }
+    let mut costs = Vec::with_capacity(input.costs.len());
+    for cost in &input.costs {
+        let label = clean_name(&cost.label)?;
+        if cost.amount <= 0 || cost.amount > MAX_AMOUNT {
+            return Err(AppError::invalid(format!("The cost \"{label}\" needs an amount greater than zero.")));
+        }
+        if !matches!(cost.frequency.as_str(), "once" | "monthly" | "yearly") {
+            return Err(AppError::invalid("Unknown cost frequency."));
+        }
+        costs.push((label, cost.amount, cost.frequency.as_str()));
+    }
+
+    let id = match id {
+        Some(id) => {
+            let changed = conn.execute(
+                "UPDATE goals SET name = ?2, target_price = ?3, saved_amount = ?4, target_date = ?5,
+                    monthly_contribution = ?6, priority = ?7, status = ?8 WHERE id = ?1",
+                params![id, name, input.target_price, input.saved_amount, input.target_date,
+                    input.monthly_contribution, input.priority, input.status],
+            )?;
+            if changed == 0 {
+                return Err(AppError::NotFound);
+            }
+            conn.execute("DELETE FROM goal_costs WHERE goal_id = ?1", [id])?;
+            id.to_string()
+        }
+        None => {
+            let id = new_id();
+            conn.execute(
+                "INSERT INTO goals (id, name, target_price, saved_amount, target_date, monthly_contribution, priority, status)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                params![id, name, input.target_price, input.saved_amount, input.target_date,
+                    input.monthly_contribution, input.priority, input.status],
+            )?;
+            id
+        }
+    };
+    for (position, (label, amount, frequency)) in costs.iter().enumerate() {
+        conn.execute(
+            "INSERT INTO goal_costs (goal_id, position, label, amount, frequency) VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![id, position as i64, label, amount, frequency],
+        )?;
+    }
+    Ok(id)
+}
+
+pub fn delete_goal(conn: &Connection, id: &str) -> AppResult<()> {
+    let changed = conn.execute("DELETE FROM goals WHERE id = ?1", [id])?;
+    if changed == 0 { Err(AppError::NotFound) } else { Ok(()) }
+}
+
 pub fn load_ledger(conn: &Connection) -> AppResult<Ledger> {
     Ok(Ledger {
         accounts: list_accounts(conn)?,
         categories: list_categories(conn)?,
         transactions: list_transactions(conn)?,
         schedules: list_schedules(conn)?,
+        goals: list_goals(conn)?,
     })
 }
 
@@ -868,6 +1032,49 @@ mod tests {
         let due = vec![DueOccurrence { schedule_id: id.clone(), date: "2026-11-12".into() }];
         assert_eq!(post_due(&conn, &due, "2026-11-20").unwrap(), 0);
         assert_eq!(list_schedules(&conn).unwrap()[0].posted_through.as_deref(), Some("2026-11-20"));
+    }
+
+    #[test]
+    fn goals_round_trip_with_costs() {
+        let conn = db();
+        let cost = |label: &str, amount: i64, frequency: &str| GoalCost { label: label.into(), amount, frequency: frequency.into() };
+        let mut input = GoalInput {
+            name: " Motorcycle ".into(), target_price: 2_500_000, saved_amount: 800_000,
+            target_date: Some("2027-05-15".into()), monthly_contribution: 200_000, priority: 1, status: "active".into(),
+            costs: vec![cost("Registration", 120_000, "once"), cost("Insurance", 240_000, "yearly"), cost("Fuel", 40_000, "monthly")],
+        };
+        let id = save_goal(&conn, None, &input).unwrap();
+        let stored = &list_goals(&conn).unwrap()[0];
+        assert_eq!(stored.name, "Motorcycle");
+        assert_eq!(stored.costs.iter().map(|c| c.label.as_str()).collect::<Vec<_>>(), ["Registration", "Insurance", "Fuel"]);
+
+        // Editing replaces the cost lines.
+        input.costs = vec![cost("Insurance", 260_000, "yearly")];
+        input.saved_amount = 1_000_000;
+        save_goal(&conn, Some(&id), &input).unwrap();
+        let stored = &list_goals(&conn).unwrap()[0];
+        assert_eq!((stored.saved_amount, stored.costs.len(), stored.costs[0].amount), (1_000_000, 1, 260_000));
+
+        // Validation
+        let reject = |change: &dyn Fn(&mut GoalInput)| {
+            let mut bad = input.clone();
+            change(&mut bad);
+            assert!(matches!(save_goal(&conn, None, &bad), Err(AppError::Invalid(_))));
+        };
+        reject(&|g| g.name = "  ".into());
+        reject(&|g| g.target_price = 0);
+        reject(&|g| g.saved_amount = -1);
+        reject(&|g| g.target_date = Some("2027-02-30".into()));
+        reject(&|g| g.priority = 0);
+        reject(&|g| g.status = "done".into());
+        reject(&|g| g.costs = vec![cost("Fuel", 0, "monthly")]);
+        reject(&|g| g.costs = vec![cost("Fuel", 100, "daily")]);
+        assert_eq!(list_goals(&conn).unwrap().len(), 1);
+
+        // Deleting the goal removes its costs.
+        delete_goal(&conn, &id).unwrap();
+        let orphans: i64 = conn.query_row("SELECT COUNT(*) FROM goal_costs", [], |r| r.get(0)).unwrap();
+        assert_eq!((list_goals(&conn).unwrap().len(), orphans), (0, 0));
     }
 
     #[test]

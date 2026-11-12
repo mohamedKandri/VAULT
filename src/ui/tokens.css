@@ -32,6 +32,7 @@
   /* Chart roles */
   --series-accent: var(--positive);
   --series-2: #6b8fd6; /* validated against --series-accent on --surface-1 (CVD dE 15.1) */
+  --series-3: #c98500; /* third series; validated all-pairs with the two above */
   --series-neutral: #7b848d; /* single-series marks only: never used to tell series apart */
   --series-muted: #3a4046;
   --grid: #1b1f22;

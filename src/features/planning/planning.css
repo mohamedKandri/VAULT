@@ -1,0 +1,292 @@
+/* Shared layout for the planning tools: inputs on the left, results on the right. */
+.plan {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: var(--s4);
+  align-items: start;
+  max-width: 1480px;
+}
+.plan__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  min-width: 0;
+}
+.plan__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+}
+.plan__inline-check {
+  font-size: var(--fs-small);
+  gap: 8px;
+}
+.plan__basis,
+.plan__note {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  line-height: 1.55;
+  margin-top: var(--s4);
+  max-width: 80ch;
+}
+.plan__horizon {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
+  flex-wrap: wrap;
+}
+.plan__number {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  white-space: nowrap;
+}
+.plan__number .input {
+  width: 68px;
+  height: 30px;
+  padding: 0 8px;
+}
+
+.plan__table-wrap {
+  overflow-x: auto;
+}
+.plan__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 480px;
+}
+.plan__table th,
+.plan__table td {
+  padding: 8px var(--s3) 8px 0;
+  border-bottom: 1px solid var(--hairline);
+  text-align: right;
+  white-space: nowrap;
+}
+.plan__table th[scope="row"],
+.plan__table thead th:first-child {
+  text-align: left;
+  font-weight: 400;
+  color: var(--text-2);
+}
+.plan__table thead th {
+  font-weight: 550;
+  color: var(--text-1);
+}
+.plan__table thead .legend-key {
+  color: var(--text-1);
+  font-weight: 550;
+}
+.plan__table tr:last-child th,
+.plan__table tr:last-child td {
+  border-bottom: 0;
+}
+.plan__table .is-strong td {
+  font-weight: 600;
+}
+.plan__table .is-strong th {
+  color: var(--text-1);
+}
+.plan__table .is-quiet td {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  white-space: normal;
+}
+.plan__table td.is-good {
+  color: var(--positive-ink);
+}
+.plan__table td.is-bad {
+  color: var(--negative);
+}
+
+/* Verdict banner (affordability) and status lines */
+.verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s4);
+  padding: var(--s5);
+  border-radius: var(--radius);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-1);
+}
+.verdict__icon {
+  flex: none;
+  margin-top: 2px;
+}
+.verdict--comfortable { border-color: rgba(53, 168, 119, 0.45); }
+.verdict--comfortable .verdict__icon { color: var(--positive-ink); }
+.verdict--caution { border-color: rgba(214, 161, 63, 0.45); }
+.verdict--caution .verdict__icon { color: var(--caution); }
+.verdict--risky { border-color: rgba(220, 111, 85, 0.5); }
+.verdict--risky .verdict__icon { color: var(--negative); }
+.verdict__title {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.verdict__reasons {
+  margin: var(--s2) 0 0;
+  padding-left: 18px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+.verdict__none {
+  color: var(--text-2);
+  margin-top: var(--s2);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: var(--s5) var(--s4);
+  margin: 0;
+}
+.facts dt {
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  margin-bottom: 2px;
+}
+.facts dd {
+  margin: 0;
+  font-size: var(--fs-lead);
+  font-weight: 550;
+  font-variant-numeric: tabular-nums;
+}
+.facts small {
+  display: block;
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  font-weight: 400;
+}
+
+.warning-list {
+  list-style: none;
+  margin: 0 0 var(--s4);
+  padding: var(--s3) var(--s4);
+  border: 1px solid rgba(220, 111, 85, 0.4);
+  border-radius: var(--radius-small);
+  background: var(--negative-wash);
+  color: var(--text-1);
+  line-height: 1.6;
+}
+.warning-list b {
+  font-weight: 550;
+}
+
+/* Goals */
+.goals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  max-width: 1480px;
+}
+.goals__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s5);
+}
+.goals__head p {
+  color: var(--text-2);
+  max-width: 64ch;
+}
+.goals__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--s4);
+}
+.goal__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.goal__name {
+  font-size: var(--fs-lead);
+  font-weight: 600;
+}
+.goal__status {
+  font-size: var(--fs-small);
+  font-weight: 550;
+  white-space: nowrap;
+}
+.goal__status--good { color: var(--positive-ink); }
+.goal__status--bad { color: var(--caution); }
+.goal__status--flat { color: var(--text-3); }
+.goal__bar {
+  height: 6px;
+  margin: var(--s3) 0 var(--s2);
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.goal__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--positive);
+}
+.goal__progress {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  margin-bottom: var(--s4);
+}
+.goal__progress b {
+  color: var(--text-1);
+  font-weight: 550;
+}
+.goal__actions {
+  display: flex;
+  gap: 2px;
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--hairline);
+}
+.goal .facts {
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s4);
+}
+.goal .facts dd {
+  font-size: var(--fs-body);
+}
+
+.costs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+.costs__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 108px 28px;
+  gap: var(--s2);
+  align-items: center;
+}
+.costs__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.costs__head span {
+  font-size: var(--fs-small);
+  font-weight: 550;
+  color: var(--text-2);
+}
+.costs__buttons {
+  display: flex;
+  gap: var(--s2);
+}
+
+@media (max-width: 980px) {
+  .plan {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .plan__fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}

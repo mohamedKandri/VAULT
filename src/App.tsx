@@ -2,9 +2,13 @@ import { LockScreen } from "./app/LockScreen";
 import { ROUTES, useRoute } from "./app/routes";
 import { Shell } from "./app/Shell";
 import { LedgerProvider, useLedger } from "./data/LedgerContext";
+import { Affordability } from "./features/affordability/Affordability";
 import { Dashboard } from "./features/dashboard/Dashboard";
+import { Forecast } from "./features/forecast/Forecast";
+import { Goals } from "./features/goals/Goals";
 import { Planned } from "./features/Planned";
 import { Settings } from "./features/settings/Settings";
+import { Simulator } from "./features/simulator/Simulator";
 import { Transactions } from "./features/transactions/Transactions";
 
 function Screen() {
@@ -24,6 +28,14 @@ function Screen() {
         <Transactions />
       ) : route === "settings" ? (
         <Settings />
+      ) : route === "simulator" ? (
+        <Simulator />
+      ) : route === "goals" ? (
+        <Goals />
+      ) : route === "affordability" ? (
+        <Affordability />
+      ) : route === "forecast" ? (
+        <Forecast />
       ) : (
         <Planned route={active} />
       )}

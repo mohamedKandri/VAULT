@@ -24,6 +24,7 @@ const ledger: Ledger = {
     tx("e", "2026-10-15", "expense", "1500", { description: "Atlas dinner" }),
   ],
   schedules: [],
+  goals: [],
 };
 
 const base: TransactionQuery = {

@@ -1,4 +1,4 @@
-import { CalendarClock, Target } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { useMemo } from "react";
 import { useLedger } from "../../data/LedgerContext";
 import { formatBps, formatMAD, ratioBps, type Centimes } from "../../engine";
@@ -6,6 +6,7 @@ import { MonthChart, type ChartMonth } from "../../ui/charts/MonthChart";
 import { dayMonth, monthLong, monthShort } from "../../ui/format";
 import { Delta, LegendKey, Money, Panel, Sparkline } from "../../ui/primitives";
 import { BudgetPanel } from "./BudgetPanel";
+import { GoalsPanel } from "./GoalsPanel";
 import { UPCOMING_DAYS, buildDashboard, delta, type DashboardModel } from "./model";
 import "./dashboard.css";
 
@@ -129,11 +130,7 @@ export function Dashboard() {
 
       <Upcoming model={model} />
 
-      <Panel title="Financial goals" className="dash__third" pending>
-        <Pending icon={<Target size={18} strokeWidth={1.5} />} phase={4}>
-          No goals yet. Purchase goals with their full cost of ownership will appear here, with progress and estimated dates.
-        </Pending>
-      </Panel>
+      <GoalsPanel />
 
       <BudgetPanel />
     </div>
