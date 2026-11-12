@@ -3,6 +3,41 @@
 Newest entry first. Each entry records what was done, what was verified,
 decisions taken and what remains.
 
+## 2026-11-12 — Phase 3 (part 2): recurring items, spending limit, health
+
+### Done
+- Recurring income, expenses and transfers: rules stored in Rust, occurrence
+  dates computed by the engine, posted automatically when the ledger loads.
+  Each occurrence posts at most once; one the user deletes is not recreated;
+  pausing skips occurrences without backfilling on resume.
+- Safe-to-spend (`engine/budget.ts`): expected income minus fixed and
+  scheduled expenses minus savings transfers, minus variable spending so far.
+  The dashboard panel lists every line of the calculation on demand.
+- Health indicators from the last one to three complete months: expense
+  cover, fixed-cost share, savings rate. Null until a full month exists.
+- Transactions screen gained a History / Recurring switch.
+
+### Verified
+- `cargo test` 26, `pnpm test` 131, typecheck and build clean.
+- In the real Tauri window: after a full application restart the vault was
+  locked and the earlier records were intact; a monthly rent rule starting
+  2 Sep posted exactly three fixed expenses (Sep, Oct, Nov) and showed 2 Dec
+  as upcoming; the spending-limit panel showed MAD 6,200.00
+  (14,000 income - 3,800 rent - 4,000 moved to savings), matching by hand.
+
+### Known issue
+- Health indicators count a month as "complete" if any transaction predates
+  it, even one dated before the accounts' opening date (possible through a
+  backfilled recurring rule). Should key off account opening dates.
+
+### Not done (rest of Phase 3)
+- CSV import and export; balance checkpoints; backup / restore; full export;
+  delete-everything; auto-lock on Windows session lock; goals panel (Phase 4).
+
+### Next
+- Finish the Phase 3 items above, then Phase 4: projection engine, savings
+  simulator, purchase goals with ownership costs, affordability, forecast.
+
 ## 2026-11-12 — Phase 3 (part 1): encrypted storage, lock, accounts, transactions
 
 ### Done
