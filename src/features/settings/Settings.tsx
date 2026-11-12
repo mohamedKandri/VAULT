@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Lock, Pencil, Plus, Scale, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../data/api";
 import { useLedger } from "../../data/LedgerContext";
@@ -7,6 +7,7 @@ import { accountBalance, formatMAD, type AccountKind } from "../../engine";
 import { AmountField, Dialog, Field, Segmented, readAmount, useSubmit } from "../../ui/forms";
 import { fullDate } from "../../ui/format";
 import { Money, Panel } from "../../ui/primitives";
+import { DataPanel, ReconcileDialog } from "./DataPanel";
 import "./settings.css";
 
 const KIND_LABEL: Record<AccountKind, string> = { current: "Current", savings: "Savings", cash: "Cash" };
@@ -29,6 +30,7 @@ export function Settings() {
     <div className="settings">
       <Accounts />
       <Categories />
+      <DataPanel />
       <Security />
     </div>
   );
@@ -37,6 +39,7 @@ export function Settings() {
 function Accounts() {
   const { ledger, today, mutate } = useLedger();
   const [dialog, setDialog] = useState<{ account: LedgerAccount | null } | null>(null);
+  const [reconcile, setReconcile] = useState<LedgerAccount | null>(null);
   const action = useSubmit(async () => {});
 
   const run = (change: () => Promise<unknown>) => async () => {
@@ -77,6 +80,9 @@ function Accounts() {
                 </div>
                 <Money amount={accountBalance(account, ledger.transactions, today)} />
                 <div className="settings__actions">
+                  <button className="icon-button" onClick={() => setReconcile(account)} aria-label={`Reconcile ${account.name}`} title="Reconcile with your real balance">
+                    <Scale size={14} />
+                  </button>
                   <button className="icon-button" onClick={() => setDialog({ account })} aria-label={`Edit ${account.name}`} title="Edit">
                     <Pencil size={14} />
                   </button>
@@ -105,6 +111,7 @@ function Accounts() {
       )}
       {action.error && <p className="form-error" role="alert">{action.error}</p>}
       {dialog && <AccountDialog account={dialog.account} onClose={() => setDialog(null)} />}
+      {reconcile && <ReconcileDialog account={reconcile} onClose={() => setReconcile(null)} />}
     </Panel>
   );
 }

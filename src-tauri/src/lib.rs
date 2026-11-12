@@ -13,6 +13,7 @@ mod commands;
 mod crypto;
 mod db;
 mod error;
+mod files;
 mod vault;
 
 use std::sync::Mutex;
@@ -53,6 +54,13 @@ pub fn run() {
             commands::schedule_post_due,
             commands::goal_save,
             commands::goal_delete,
+            commands::data_export_csv,
+            commands::data_export_json,
+            commands::data_pick_csv,
+            commands::transactions_import,
+            commands::backup_export,
+            commands::backup_restore,
+            commands::vault_destroy,
         ])
         .run(tauri::generate_context!())
         .expect("error while running VAULT");

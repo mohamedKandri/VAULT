@@ -170,6 +170,62 @@ impl Vault {
         write_atomically(&self.path, &self.sealed_image()?)
     }
 
+    /// The current vault as an encrypted image, for a backup file. It is
+    /// protected by the same passphrase as the vault at the time of backup.
+    pub fn backup_image(&self) -> AppResult<Vec<u8>> {
+        self.sealed_image()
+    }
+
+    /// Replace the vault with a backup image. The image is fully decrypted,
+    /// loaded and integrity-checked in memory before anything on disk is
+    /// touched, and the previous vault file is kept beside the new one.
+    /// The restored vault keeps the backup's passphrase.
+    pub fn restore(&mut self, image: &[u8], passphrase: &str) -> AppResult<()> {
+        let (salt, params) = crypto::read_header(image)?;
+        let key = crypto::derive_key(passphrase, &salt, params)?;
+        let plaintext = crypto::open(&key, image)?;
+        let mut conn = Connection::open_in_memory()?;
+        conn.deserialize_read_exact(MAIN_DB, plaintext.as_slice(), plaintext.len(), false)
+            .map_err(|_| AppError::Corrupt)?;
+        let check: String = conn.query_row("PRAGMA integrity_check", [], |r| r.get(0)).map_err(|_| AppError::Corrupt)?;
+        if check != "ok" {
+            return Err(AppError::Corrupt);
+        }
+        db::migrate(&mut conn)?;
+
+        if self.exists() {
+            fs::copy(&self.path, self.previous_path())?;
+        } else if let Some(parent) = self.path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        self.state = Some(Unlocked { conn, key, salt, params });
+        self.failed_attempts = 0;
+        self.persist()
+    }
+
+    fn previous_path(&self) -> PathBuf {
+        self.path.with_extension("before-restore")
+    }
+
+    /// Permanently delete the vault and everything kept beside it. Requires
+    /// the passphrase, so a walk-up click on an unlocked screen is not enough.
+    pub fn destroy(&mut self, passphrase: &str) -> AppResult<()> {
+        if !self.exists() {
+            return Err(AppError::NoVault);
+        }
+        let file = fs::read(&self.path)?;
+        let (salt, params) = crypto::read_header(&file)?;
+        crypto::open(&crypto::derive_key(passphrase, &salt, params)?, &file)?;
+        self.lock();
+        fs::remove_file(&self.path)?;
+        for leftover in [self.previous_path(), self.path.with_extension("tmp")] {
+            if leftover.exists() {
+                fs::remove_file(leftover)?;
+            }
+        }
+        Ok(())
+    }
+
     /// Re-encrypt under a new passphrase (new salt, new key). The current
     /// passphrase is verified against the file first.
     pub fn change_passphrase(&mut self, current: &str, new: &str) -> AppResult<()> {
@@ -316,6 +372,65 @@ mod tests {
         assert!(matches!(vault.unlock(PASS), Err(AppError::WrongPassphrase)));
         vault.unlock("a new passphrase").unwrap();
         assert_eq!(vault.read(db::list_accounts).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn backup_and_restore_round_trip() {
+        let (_dir, mut vault) = temp_vault();
+        vault.create(PASS).unwrap();
+        add_account(&mut vault, "Before backup");
+        let backup = vault.backup_image().unwrap();
+        add_account(&mut vault, "After backup");
+        assert_eq!(vault.read(db::list_accounts).unwrap().len(), 2);
+
+        // A wrong passphrase or a damaged backup changes nothing.
+        assert!(matches!(vault.restore(&backup, "wrong passphrase"), Err(AppError::WrongPassphrase)));
+        let mut damaged = backup.clone();
+        let middle = damaged.len() / 2;
+        damaged[middle] ^= 0xFF;
+        assert!(vault.restore(&damaged, PASS).is_err());
+        assert!(vault.restore(b"not a backup at all", PASS).is_err());
+        assert_eq!(vault.read(db::list_accounts).unwrap().len(), 2);
+
+        vault.restore(&backup, PASS).unwrap();
+        let names: Vec<String> = vault.read(db::list_accounts).unwrap().into_iter().map(|a| a.name).collect();
+        assert_eq!(names, ["Before backup"]);
+        assert!(vault.previous_path().is_file(), "the replaced vault must be kept");
+
+        // The restored state is what is on disk.
+        vault.lock();
+        vault.unlock(PASS).unwrap();
+        assert_eq!(vault.read(db::list_accounts).unwrap().len(), 1);
+    }
+
+    #[test]
+    fn restore_into_an_empty_installation() {
+        let (_dir, mut source) = temp_vault();
+        source.create(PASS).unwrap();
+        add_account(&mut source, "Travelling account");
+        let backup = source.backup_image().unwrap();
+
+        let (_dir2, mut fresh) = temp_vault();
+        assert!(!fresh.exists());
+        fresh.restore(&backup, PASS).unwrap();
+        assert!(fresh.exists() && fresh.is_unlocked());
+        assert_eq!(fresh.read(db::list_accounts).unwrap()[0].name, "Travelling account");
+    }
+
+    #[test]
+    fn destroy_requires_the_passphrase_and_leaves_nothing() {
+        let (dir, mut vault) = temp_vault();
+        vault.create(PASS).unwrap();
+        let backup = vault.backup_image().unwrap();
+        vault.restore(&backup, PASS).unwrap(); // creates the "before-restore" copy
+        assert!(matches!(vault.destroy("wrong passphrase"), Err(AppError::WrongPassphrase)));
+        assert!(vault.exists() && vault.is_unlocked());
+
+        vault.destroy(PASS).unwrap();
+        assert!(!vault.exists() && !vault.is_unlocked());
+        let left: Vec<_> = fs::read_dir(dir.path().join("data")).unwrap().collect();
+        assert!(left.is_empty(), "files left behind: {left:?}");
+        assert!(matches!(vault.destroy(PASS), Err(AppError::NoVault)));
     }
 
     #[test]

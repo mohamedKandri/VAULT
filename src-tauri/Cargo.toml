@@ -25,6 +25,8 @@ zeroize = "1.9.1"
 thiserror = "2.0.21"
 rand = "0.8"
 uuid = { version = "1.29.2", features = ["v4"] }
+rfd = "0.18.0"
+csv = "1.4.0"
 
 [profile.release]
 codegen-units = 1

@@ -27,6 +27,10 @@ interface LedgerState {
   lock: () => Promise<void>;
   /** Run a change against the backend, then reload the ledger. */
   mutate: <T>(change: () => Promise<T>) => Promise<T>;
+  /** Reload after the vault was replaced (restore from backup). */
+  refresh: () => Promise<void>;
+  /** The vault was deleted: back to first-run setup. */
+  forget: () => void;
 }
 
 const LedgerContext = createContext<LedgerState | null>(null);
@@ -75,6 +79,12 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
   const create = useCallback((passphrase: string) => open(() => api.create(passphrase)), [open]);
   const unlock = useCallback((passphrase: string) => open(() => api.unlock(passphrase)), [open]);
 
+  const forget = useCallback(() => {
+    setStored(EMPTY_LEDGER);
+    setDemo(false);
+    setStatus("setup");
+  }, []);
+
   const lock = useCallback(async () => {
     await api.lock();
     setStored(EMPTY_LEDGER); // drop decrypted data from the interface as well
@@ -111,8 +121,8 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
 
   const ledger = useMemo(() => (isDemo ? buildDemoLedger(today) : stored), [isDemo, today, stored]);
   const value = useMemo<LedgerState>(
-    () => ({ status, ledger, today, isDemo, setDemo, canEdit: status === "ready" && !isDemo, create, unlock, lock, mutate }),
-    [status, ledger, today, isDemo, create, unlock, lock, mutate],
+    () => ({ status, ledger, today, isDemo, setDemo, canEdit: status === "ready" && !isDemo, create, unlock, lock, mutate, refresh: reload, forget }),
+    [status, ledger, today, isDemo, create, unlock, lock, mutate, reload, forget],
   );
   return <LedgerContext.Provider value={value}>{children}</LedgerContext.Provider>;
 }

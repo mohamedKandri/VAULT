@@ -597,6 +597,18 @@ pub fn save_transaction(conn: &Connection, id: Option<&str>, input: &Transaction
     }
 }
 
+/// Insert many transactions. Called inside one write, so a single invalid
+/// row aborts the whole import and nothing is added.
+pub fn import_transactions(conn: &Connection, inputs: &[TransactionInput]) -> AppResult<usize> {
+    for (index, input) in inputs.iter().enumerate() {
+        save_transaction(conn, None, input).map_err(|error| match error {
+            AppError::Invalid(message) => AppError::invalid(format!("Row {}: {message}", index + 1)),
+            other => other,
+        })?;
+    }
+    Ok(inputs.len())
+}
+
 pub fn delete_transaction(conn: &Connection, id: &str) -> AppResult<()> {
     let changed = conn.execute("DELETE FROM transactions WHERE id = ?1", [id])?;
     if changed == 0 { Err(AppError::NotFound) } else { Ok(()) }

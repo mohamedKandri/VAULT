@@ -149,6 +149,15 @@ export const api = {
   deleteSchedule: (id: string) => call<void>("schedule_delete", { id }),
   postDue: (due: DueOccurrence[], through: IsoDate) => call<number>("schedule_post_due", { due, through }),
 
+  importTransactions: (inputs: TransactionInput[]) => call<number>("transactions_import", { inputs }),
+  /** Each of these opens a native file dialog; the result is the chosen file name, or null if cancelled. */
+  exportCsv: () => call<string | null>("data_export_csv"),
+  exportJson: () => call<string | null>("data_export_json"),
+  pickCsv: () => call<{ fileName: string; headers: string[]; rows: string[][] } | null>("data_pick_csv"),
+  exportBackup: () => call<string | null>("backup_export"),
+  restoreBackup: (passphrase: string) => call<string | null>("backup_restore", { passphrase }),
+  destroyVault: (passphrase: string) => call<void>("vault_destroy", { passphrase }),
+
   saveGoal: (id: string | null, input: GoalInput) => call<string>("goal_save", { id, input }),
   deleteGoal: (id: string) => call<void>("goal_delete", { id }),
 };

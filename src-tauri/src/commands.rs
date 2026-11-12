@@ -10,6 +10,7 @@ use zeroize::Zeroizing;
 
 use crate::db::{self, AccountInput, CategoryInput, DueOccurrence, Ledger, ScheduleInput, TransactionInput};
 use crate::error::{AppError, AppResult};
+use crate::files;
 use crate::vault::Vault;
 
 pub type VaultState = Mutex<Vault>;
@@ -119,4 +120,63 @@ pub fn goal_delete(state: State<VaultState>, id: String) -> AppResult<()> {
 #[tauri::command]
 pub fn transaction_delete(state: State<VaultState>, id: String) -> AppResult<()> {
     locked(&state)?.write(|conn| db::delete_transaction(conn, &id))
+}
+
+// ------------------------------------------------- files, backup, deletion
+
+/// Save all transactions as CSV where the user chooses. Returns the file name, or null if cancelled.
+#[tauri::command]
+pub fn data_export_csv(state: State<VaultState>) -> AppResult<Option<String>> {
+    let ledger = locked(&state)?.read(db::load_ledger)?;
+    files::save_text("Export transactions", "vault-transactions.csv", ("CSV", &["csv"]), &files::transactions_csv(&ledger)?)
+}
+
+/// Save everything as readable JSON. The file is NOT encrypted; the interface warns before calling this.
+#[tauri::command]
+pub fn data_export_json(state: State<VaultState>) -> AppResult<Option<String>> {
+    let ledger = locked(&state)?.read(db::load_ledger)?;
+    let json = serde_json::to_string_pretty(&ledger).map_err(|e| AppError::Internal(e.to_string()))?;
+    files::save_text("Export all data (not encrypted)", "vault-export.json", ("JSON", &["json"]), &json)
+}
+
+/// Let the user pick a CSV file and return its cells for preview. Nothing is imported yet.
+#[tauri::command]
+pub fn data_pick_csv(state: State<VaultState>) -> AppResult<Option<files::CsvFile>> {
+    if !locked(&state)?.is_unlocked() {
+        return Err(AppError::Locked);
+    }
+    match files::pick_bytes("Import transactions", ("CSV", &["csv", "txt"]))? {
+        Some((name, bytes)) => files::parse_csv(name, &bytes).map(Some),
+        None => Ok(None),
+    }
+}
+
+#[tauri::command]
+pub fn transactions_import(state: State<VaultState>, inputs: Vec<TransactionInput>) -> AppResult<usize> {
+    locked(&state)?.write(|conn| db::import_transactions(conn, &inputs))
+}
+
+/// Save an encrypted backup where the user chooses.
+#[tauri::command]
+pub fn backup_export(state: State<VaultState>) -> AppResult<Option<String>> {
+    let image = locked(&state)?.backup_image()?;
+    files::save_bytes("Save encrypted backup", "vault.vaultbackup", ("VAULT backup", &[files::BACKUP_EXTENSION]), &image)
+}
+
+/// Let the user pick a backup and replace the vault with it. `passphrase` is the backup's.
+#[tauri::command]
+pub fn backup_restore(state: State<VaultState>, passphrase: String) -> AppResult<Option<String>> {
+    let passphrase = Zeroizing::new(passphrase);
+    let Some((name, image)) = files::pick_bytes("Restore from backup", ("VAULT backup", &[files::BACKUP_EXTENSION]))? else {
+        return Ok(None);
+    };
+    locked(&state)?.restore(&image, &passphrase)?;
+    Ok(Some(name))
+}
+
+/// Permanently delete the vault. Requires the passphrase.
+#[tauri::command]
+pub fn vault_destroy(state: State<VaultState>, passphrase: String) -> AppResult<()> {
+    let passphrase = Zeroizing::new(passphrase);
+    locked(&state)?.destroy(&passphrase)
 }
