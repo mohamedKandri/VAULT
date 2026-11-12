@@ -1,0 +1,32 @@
+.planned {
+  max-width: 520px;
+  padding-top: 12vh;
+}
+.planned__icon {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px dashed var(--hairline-strong);
+  border-radius: var(--radius);
+  color: var(--text-2);
+}
+.planned__title {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: var(--s5) 0 var(--s2);
+}
+.planned__body {
+  color: var(--text-2);
+  font-size: var(--fs-lead);
+  line-height: 1.55;
+}
+.planned__phase {
+  display: inline-block;
+  margin-top: var(--s5);
+  font-size: var(--fs-micro);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
