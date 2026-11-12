@@ -12,18 +12,31 @@
 import { monthOf, type IsoDate, type YearMonth } from "./dates";
 import { ZERO, add, changeBps, mulRatio, ratioBps, sub, sum, type Centimes } from "./money";
 
-export type TransactionKind = "income" | "expense";
+/**
+ * A transfer moves money between the user's own accounts. It changes account
+ * balances but is neither income nor an expense, so summaries ignore it.
+ */
+export type TransactionKind = "income" | "expense" | "transfer";
 
 export interface Transaction {
   id: string;
+  /** Account the money enters (income) or leaves (expense, transfer). */
+  accountId: string;
   date: IsoDate;
   kind: TransactionKind;
   /** Always positive; `kind` gives the direction. */
   amount: Centimes;
-  categoryId: string;
-  /** Fixed commitment (true) or variable spending (false). Ignored for income. */
+  /** Null for transfers. */
+  categoryId: string | null;
+  /** Destination account; transfers only. */
+  transferAccountId?: string | null;
+  /** Fixed commitment (true) or variable spending (false). Expenses only. */
   isFixed: boolean;
+  description?: string;
+  notes?: string;
 }
+
+export const UNCATEGORIZED = "uncategorized";
 
 export interface CategoryTotal {
   categoryId: string;
@@ -43,6 +56,7 @@ export interface MonthlySummary {
   savingsRateBps: number | null;
   /** Expense categories, largest first. */
   expensesByCategory: CategoryTotal[];
+  /** All transactions dated in the month, transfers included. */
   transactionCount: number;
 }
 
@@ -65,10 +79,11 @@ export function summarizeMonth(transactions: readonly Transaction[], month: Year
     transactionCount++;
     if (tx.kind === "income") {
       income = add(income, tx.amount);
-    } else {
+    } else if (tx.kind === "expense") {
       if (tx.isFixed) fixedExpenses = add(fixedExpenses, tx.amount);
       else variableExpenses = add(variableExpenses, tx.amount);
-      byCategory.set(tx.categoryId, add(byCategory.get(tx.categoryId) ?? ZERO, tx.amount));
+      const categoryId = tx.categoryId ?? UNCATEGORIZED;
+      byCategory.set(categoryId, add(byCategory.get(categoryId) ?? ZERO, tx.amount));
     }
   }
 
