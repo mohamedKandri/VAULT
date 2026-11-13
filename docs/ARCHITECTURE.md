@@ -20,11 +20,11 @@ derived from what the user records. That one fact shapes the data model
 | Shell | Tauri 2 | Small installer (~10 MB vs ~100 MB for Electron), Rust backend, webview has no ambient filesystem/network access. |
 | UI | React 19, TypeScript, Vite | As requested; strict TypeScript throughout. |
 | Financial engine | Pure TypeScript (`src/engine`) | See 3.1. |
-| Storage | SQLite + SQLCipher, via `rusqlite` in Rust | Whole-database encryption at rest. See 5. |
+| Storage | SQLite (in memory) sealed to one encrypted file, via `rusqlite` + RustCrypto | Whole-database authenticated encryption with no C crypto dependency. See 5. |
 | Server state | TanStack Query over Tauri commands | Caching and invalidation without a hand-rolled store. |
-| Charts | SVG built on `d3-scale`/`d3-shape` | Full control over the visual language; no template-looking chart library defaults. Decided finally in Phase 2. |
+| Charts | Hand-written SVG (`src/ui/charts`), no chart library | Full control over the visual language and no dependency; the scale and tick maths is ~20 lines. Colours are validated for colour-blind separation. |
 | Tests | Vitest (engine), `cargo test` (storage, crypto) | |
-| AI (optional) | Ollama on localhost by default; cloud provider opt-in | See 6. |
+| AI (optional) | Built-in answers with no AI; optional Ollama on localhost. No cloud provider is built. | See 6. |
 
 ## 3. Structure
 
@@ -160,7 +160,7 @@ desktop application can defend against that.
 
 | Control | Design |
 |---|---|
-| Encryption at rest | SQLCipher (AES-256, per-page HMAC). The whole file is opaque, including the schema. |
+| Encryption at rest | The SQLite database lives only in memory. On disk there is one file, sealed with XChaCha20-Poly1305 (fresh nonce per write, header bound as associated data) and replaced atomically after every committed change. No plaintext database, journal or temp file is ever written. Any modification of the file fails authentication. |
 | Key | Argon2id (64 MiB, 3 passes) over the passphrase with a random salt stored beside the DB. The key lives only in Rust memory, zeroised on lock. Never written to disk. |
 | Application lock | The lock *is* the key: locking closes the DB and drops the key. Auto-lock on idle and on Windows session lock. Attempts are rate-limited. |
 | No recovery | A forgotten passphrase means the data is unrecoverable. This is stated at setup. A recovery backdoor would be a hole in the vault. |
@@ -168,7 +168,7 @@ desktop application can defend against that.
 | Narrow command surface | The webview calls typed commands (`list_transactions`, …). It cannot send SQL. `tauri-plugin-sql` is deliberately not used. |
 | Network | Zero network code in the default build path. No telemetry, no analytics, no update pings. The only component able to make a request is the AI gateway, and only once enabled. |
 | Secrets | A cloud AI key is stored in Windows Credential Manager and read only by Rust. It never enters the webview or the bundle. |
-| Backup | Encrypted backup = a SQLCipher copy (`VACUUM INTO`) under its own passphrase. Restore verifies integrity before replacing anything and keeps the previous database until success. |
+| Backup | Encrypted backup = the sealed file re-encrypted under its own passphrase. Restore verifies integrity before replacing anything and keeps the previous database until success. |
 | Export / deletion | Plain CSV/JSON export behind an explicit "this file is not encrypted" confirmation. "Delete everything" removes the database, salt, settings and stored AI key. |
 
 ## 6. AI assistant
@@ -186,7 +186,7 @@ The language model never does arithmetic and never sees the raw database.
 - **Off by default.** Every feature except the chat works without it; insights
   on the dashboard are deterministic engine output, not AI.
 - **Local first:** Ollama on `127.0.0.1`. Nothing leaves the machine.
-- **Cloud is opt-in**, with a disclosure of what is sent (the question and the
+- **Cloud: not built.** If added later it must be opt-in, with a disclosure of what is sent (the question and the
   aggregated results of the tools invoked — not the transaction table), and an
   audit log of every outbound request.
 - Framed as explanation and suggestion, never certified financial advice.
@@ -209,7 +209,7 @@ The language model never does arithmetic and never sees the raw database.
 | Phase | Scope | Exit criteria |
 |---|---|---|
 | 1 Architecture | This document, scaffold, engine primitives | Tests green; app compiles. |
-| 2 Design | Tokens, typography, shell, navigation, lock screen, dashboard layout, chart primitives | Dashboard renders from engine output on demo DB; reviewed in the running app. |
+| 2 Design | Tokens, typography, shell, navigation, dashboard, chart primitives, labelled demo ledger | Dashboard renders from engine output on the demo ledger; reviewed in the running UI. (Lock screen moved to Phase 3: a lock with no encryption behind it would be theatre.) |
 | 3 Financial core | SQLCipher storage, migrations, lock/unlock, accounts, transactions CRUD, categories, recurring posting, search/filter/sort, CSV import/export, budget ("safe to spend") | Round-trip tests in Rust; engine tests for budget; data survives restart; wrong passphrase rejected. |
 | 4 Intelligence | Projection engine, savings simulator, goals with ownership costs, goal comparison, affordability calculator, forecast with warnings, insights | Each calculation unit-tested against hand-worked examples. |
 | 5 AI | Tool layer, Ollama provider, cloud provider + disclosure + audit log | Assistant answers match engine output in tests; app fully usable with AI off and network disabled. |
@@ -219,7 +219,7 @@ The language model never does arithmetic and never sees the raw database.
 
 | Risk | Mitigation |
 |---|---|
-| **SQLCipher build on Windows.** Bundled SQLCipher compiles OpenSSL, which needs a native Windows Perl (Strawberry Perl). This machine only has Git's MSYS Perl. | First task of Phase 3 is a build spike. If the toolchain proves too fragile, fallback is an in-memory SQLite database serialised and sealed with XChaCha20-Poly1305 (pure-Rust crypto, no OpenSSL), written atomically. Weaker durability, same confidentiality. |
+| **Storage design departs from SQLCipher.** The Phase 3 build spike failed: bundled SQLCipher compiles OpenSSL, which needs a native Windows Perl this machine lacks. | Adopted the sealed-file design above. Cost: the whole file is rewritten on each change (milliseconds at this size; would need revisiting beyond tens of MB), and decrypted pages are not wiped from memory when freed. Durability is preserved: a write returns only after the new file is synced and renamed into place. |
 | Recorded balance drifts from the real one | Balance checkpoints and a visible reconciliation gap. |
 | Forgotten passphrase = total loss | Clear warning at setup; encrypted backups can use a different, written-down passphrase. |
 | Projections read as promises | Always labelled as arithmetic on stated assumptions; assumptions displayed with each chart. |

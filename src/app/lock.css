@@ -1,0 +1,53 @@
+.lock {
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: var(--s5);
+  overflow-y: auto;
+}
+.lock__card {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  animation: content-in var(--slow) var(--ease);
+}
+.lock__brand {
+  padding: 0 0 var(--s6);
+}
+.lock__title {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.lock__lead {
+  color: var(--text-2);
+  font-size: var(--fs-lead);
+  line-height: 1.5;
+  margin: -8px 0 var(--s2);
+}
+.lock__warning {
+  align-items: flex-start;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  padding: var(--s3);
+  border: 1px solid rgba(214, 161, 63, 0.3);
+  border-radius: var(--radius-small);
+  background: rgba(214, 161, 63, 0.05);
+}
+.lock__warning input {
+  margin-top: 2px;
+  flex: none;
+}
+.lock__submit {
+  height: 38px;
+  justify-content: center;
+  margin-top: var(--s1);
+}
+.lock__foot {
+  color: var(--text-3);
+  font-size: var(--fs-micro);
+  line-height: 1.5;
+}

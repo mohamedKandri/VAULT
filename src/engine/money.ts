@@ -230,3 +230,24 @@ export function formatBps(bps: number, options: { signed?: boolean } = {}): stri
   const sign = bps < 0 ? "-" : options.signed && bps > 0 ? "+" : "";
   return `${sign}${digits}%`;
 }
+
+/**
+ * How many whole `unit`s are needed to reach `amount`, rounding up:
+ * months of saving, number of installments. Null when `unit` is not positive
+ * (the target is never reached).
+ */
+export function unitsToCover(amount: Centimes, unit: Centimes): number | null {
+  if (amount <= 0) return 0;
+  if (unit <= 0) return null;
+  const a = BigInt(amount);
+  const u = BigInt(unit);
+  return Number(a / u + (a % u === 0n ? 0n : 1n));
+}
+
+/** `amount` divided by `count`, rounded up to the next centime (a required monthly saving must not fall short). */
+export function divideUp(amount: Centimes, count: number): Centimes {
+  if (!Number.isSafeInteger(count) || count <= 0) throw new MoneyError(`Divisor must be a positive integer: ${count}`);
+  const q = BigInt(amount) / BigInt(count);
+  const exact = BigInt(amount) % BigInt(count) === 0n;
+  return centimes(Number(exact || amount < 0 ? q : q + 1n));
+}
