@@ -409,3 +409,47 @@
 .panel__link:hover {
   color: var(--text-1);
 }
+
+/* Insights */
+.dash__full {
+  grid-column: 1 / -1;
+}
+.insights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.insight {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  gap: var(--s3);
+  align-items: start;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.insight:first-child {
+  padding-top: 0;
+}
+.insight:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.insight__icon {
+  margin-top: 2px;
+}
+.insight--positive .insight__icon { color: var(--positive-ink); }
+.insight--neutral .insight__icon { color: var(--text-3); }
+.insight--caution .insight__icon { color: var(--caution); }
+.insight__text {
+  line-height: 1.5;
+}
+.insight__basis {
+  margin: var(--s2) 0 0;
+  padding-left: var(--s4);
+  color: var(--text-3);
+  font-size: var(--fs-small);
+  line-height: 1.7;
+}
+.insight__toggle {
+  margin-top: 0;
+}

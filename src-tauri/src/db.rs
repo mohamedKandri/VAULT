@@ -665,11 +665,10 @@ pub fn save_schedule(conn: &Connection, id: Option<&str>, input: &ScheduleInput)
     if !(1..=120).contains(&input.interval) {
         return Err(AppError::invalid("The interval must be between 1 and 120."));
     }
-    if let Some(end) = input.end_date.as_deref() {
-        if !is_valid_date(end) || end < t.date.as_str() {
+    if let Some(end) = input.end_date.as_deref()
+        && (!is_valid_date(end) || end < t.date.as_str()) {
             return Err(AppError::invalid("The end date must be a valid date on or after the start date."));
         }
-    }
     match id {
         Some(id) => {
             let changed = conn.execute(
@@ -769,11 +768,10 @@ pub fn save_goal(conn: &Connection, id: Option<&str>, input: &GoalInput) -> AppR
     if !(0..=MAX_AMOUNT).contains(&input.saved_amount) || !(0..=MAX_AMOUNT).contains(&input.monthly_contribution) {
         return Err(AppError::invalid("Saved amount and monthly contribution cannot be negative."));
     }
-    if let Some(date) = input.target_date.as_deref() {
-        if !is_valid_date(date) {
+    if let Some(date) = input.target_date.as_deref()
+        && !is_valid_date(date) {
             return Err(AppError::invalid("The target date is not a valid date."));
         }
-    }
     if !(1..=99).contains(&input.priority) {
         return Err(AppError::invalid("Priority must be between 1 and 99."));
     }

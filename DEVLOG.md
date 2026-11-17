@@ -3,6 +3,34 @@
 Newest entry first. Each entry records what was done, what was verified,
 decisions taken and what remains.
 
+## 2026-11-17 — Dashboard insights and lock on Windows lock
+
+### Done
+- Insights panel on the Command Center (`features/dashboard/insights.ts`):
+  money left this month (or how far over), category changes against the same
+  days of last month (shown only at 15% and MAD 100 or more), the date of the
+  most important unfunded goal and whether it is late, and a thin-cushion
+  warning under 3 months of expenses. Each insight has a "How" with the
+  figures behind it. Nothing is shown without records.
+- The vault now locks when Windows locks the session or the computer goes to
+  sleep (`session.rs`): a hidden window registers for session notifications
+  and receives the sleep broadcast; Rust drops the key and decrypted data,
+  then tells the interface, which clears its copy and shows the lock screen.
+- Lint warnings in earlier Rust code cleared.
+
+### Verified
+- `cargo test` 40, `pnpm test` 196 (9 new for insights, including the brief's
+  "18% more on transportation" example); typecheck, build and clippy clean.
+- In the real Tauri window against a throwaway vault: the insights matched
+  hand calculation (MAD 13,400 left, MAD 957.14 a day; food -40%; motorcycle
+  in 10 months). Sending the Windows "session locked" message and the
+  "about to sleep" message to VAULT's watcher window each locked the vault:
+  lock screen shown, no figures left on the page, data commands refused. An
+  unrelated session message did not lock it.
+- **Not verified:** a real Windows lock (Win+L) or real sleep. The messages
+  were sent directly to the watcher window, so Windows delivering them is
+  assumed, not observed.
+
 ## 2026-11-12 — Phases 3 (completion), 4, 5 and 6
 
 ### Phase 4 — Intelligence (done)
@@ -45,7 +73,7 @@ Reviewed against ARCHITECTURE section 5:
 | Control | State |
 |---|---|
 | Encryption at rest, no plaintext on disk | Done, tested (Rust + real window) |
-| Lock = key dropped; auto-lock on idle | Done. **Not done:** lock on Windows session lock |
+| Lock = key dropped; auto-lock on idle, Windows lock and sleep | Done (2026-11-17) |
 | Wrong passphrase / tampering refused | Done, tested |
 | Webview isolation: CSP, core-only capabilities | Done. No fs, shell, http or dialog plugin |
 | Typed commands only, no SQL from the webview | Done (29 commands) |

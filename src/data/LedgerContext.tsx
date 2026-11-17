@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { dueOccurrences, today as readToday, type IsoDate } from "../engine";
+import { listen } from "@tauri-apps/api/event";
 import { api, hasBackend } from "./api";
 import { buildDemoLedger } from "./demoLedger";
 import { EMPTY_LEDGER, type Ledger } from "./ledger";
@@ -67,6 +68,20 @@ export function LedgerProvider({ children }: { children: ReactNode }) {
       }
     });
   }, [reload]);
+
+  // The backend locks the vault itself when Windows locks or the computer
+  // sleeps; drop the interface's copy of the data and show the lock screen.
+  useEffect(() => {
+    if (!hasBackend) return;
+    const stop = listen("vault-locked", () => {
+      setStored(EMPTY_LEDGER);
+      setDemo(false);
+      setStatus((current) => (current === "ready" ? "locked" : current));
+    });
+    return () => {
+      stop.then((unlisten) => unlisten());
+    };
+  }, []);
 
   const open = useCallback(
     async (action: () => Promise<void>) => {

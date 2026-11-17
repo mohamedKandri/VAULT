@@ -24,7 +24,7 @@ fn open_dialog(title: &str, filter: (&str, &[&str])) -> Option<PathBuf> {
     rfd::FileDialog::new().set_title(title).add_filter(filter.0, filter.1).pick_file()
 }
 
-fn file_name(path: &PathBuf) -> String {
+fn file_name(path: &std::path::Path) -> String {
     path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()
 }
 

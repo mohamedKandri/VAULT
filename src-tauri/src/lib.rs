@@ -8,6 +8,7 @@
 //!   vault     in-memory SQLite, sealed to one file; lock / unlock
 //!   db        schema, migrations, validated queries
 //!   commands  the IPC surface
+//!   session   lock on Windows session lock and sleep
 
 mod ai;
 mod commands;
@@ -15,6 +16,7 @@ mod crypto;
 mod db;
 mod error;
 mod files;
+mod session;
 mod vault;
 
 use std::sync::Mutex;
@@ -34,6 +36,7 @@ pub fn run() {
                 _ => app.path().app_data_dir()?,
             };
             app.manage(Mutex::new(vault::Vault::new(dir.join(VAULT_FILE))));
+            session::watch(app.handle().clone());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

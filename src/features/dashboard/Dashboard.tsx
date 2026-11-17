@@ -7,6 +7,7 @@ import { dayMonth, monthLong, monthShort } from "../../ui/format";
 import { Delta, LegendKey, Money, Panel, Sparkline } from "../../ui/primitives";
 import { BudgetPanel } from "./BudgetPanel";
 import { GoalsPanel } from "./GoalsPanel";
+import { InsightsPanel } from "./InsightsPanel";
 import { UPCOMING_DAYS, buildDashboard, delta, type DashboardModel } from "./model";
 import "./dashboard.css";
 
@@ -70,6 +71,8 @@ export function Dashboard() {
           delta={<Delta amount={delta(model.position?.savings, model.previousPosition?.savings)} goodWhen="up" versus={lastMonthEnd} />}
         />
       </div>
+
+      <InsightsPanel />
 
       <Panel
         title="Income versus expenses"

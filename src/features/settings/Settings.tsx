@@ -305,8 +305,8 @@ function Security() {
     >
       <p className="settings__hint settings__hint--top">
         Your records are stored in one encrypted file on this computer (Argon2id key derivation, XChaCha20-Poly1305).
-        The decrypted database exists only in memory while VAULT is unlocked, and it locks after 10 minutes of
-        inactivity. There is no passphrase recovery.
+        The decrypted database exists only in memory while VAULT is unlocked. It locks after 10 minutes of inactivity,
+        and whenever Windows locks or the computer goes to sleep. There is no passphrase recovery.
       </p>
       <form className="settings__passphrase" onSubmit={change.submit}>
         <Field label="Current passphrase">

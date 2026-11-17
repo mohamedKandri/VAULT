@@ -86,7 +86,7 @@ export function LockScreen({ mode }: { mode: "setup" | "locked" }) {
         <p className="lock__foot">
           {setup
             ? "Argon2id key derivation, XChaCha20-Poly1305 encryption. Nothing is sent anywhere."
-            : "Locks automatically after 10 minutes of inactivity."}
+            : "Locks after 10 minutes of inactivity, and whenever Windows locks or the computer sleeps."}
         </p>
       </form>
     </div>
