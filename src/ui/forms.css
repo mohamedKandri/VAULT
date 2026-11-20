@@ -1,0 +1,206 @@
+/* Inputs */
+.input,
+.select,
+.textarea {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-small);
+  color: var(--text-1);
+  font: inherit;
+  user-select: text;
+  transition: border-color var(--fast) var(--ease);
+  color-scheme: dark;
+}
+.textarea {
+  height: auto;
+  min-height: 64px;
+  padding: 8px 12px;
+  resize: vertical;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-3);
+}
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: none;
+  border-color: var(--positive-ink);
+  box-shadow: 0 0 0 3px rgba(53, 168, 119, 0.15);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.field__label {
+  font-size: var(--fs-small);
+  font-weight: 550;
+  color: var(--text-2);
+}
+.field__hint {
+  font-size: var(--fs-micro);
+  color: var(--text-3);
+}
+.field__hint b {
+  color: var(--text-2);
+  font-weight: 550;
+}
+.field__error,
+.form-error {
+  font-size: var(--fs-small);
+  color: var(--negative);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.check input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--positive);
+}
+
+/* Segmented control */
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-small);
+}
+.segmented button {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 4px;
+  color: var(--text-2);
+  font-size: var(--fs-small);
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--fast) var(--ease), color var(--fast) var(--ease);
+}
+.segmented button:hover {
+  color: var(--text-1);
+}
+.segmented button.is-on {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+/* Buttons (extends .button from shell.css) */
+.button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.button--danger {
+  border: 1px solid rgba(220, 111, 85, 0.4);
+  color: var(--negative);
+}
+.button--danger:hover:not(:disabled) {
+  background: var(--negative-wash);
+}
+.button--plain {
+  border: 1px solid var(--hairline-strong);
+  color: var(--text-1);
+}
+.button--plain:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-small);
+  color: var(--text-3);
+}
+.icon-button:hover {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
+/* Dialog */
+.dialog {
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  padding: 0;
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6);
+  overflow-y: auto;
+}
+.dialog[open] {
+  animation: dialog-in var(--slow) var(--ease);
+}
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+}
+.dialog__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s4) var(--s4) 0 var(--s5);
+}
+.dialog__head h2 {
+  font-size: var(--fs-lead);
+  font-weight: 600;
+}
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  padding: var(--s4) var(--s5) var(--s5);
+}
+.form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s3);
+}
+.form__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+.form__actions .spacer {
+  flex: 1;
+}
+@media (max-width: 480px) {
+  .form__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.slider {
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--positive);
+  cursor: pointer;
+}
+.slider:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

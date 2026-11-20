@@ -1,0 +1,69 @@
+/*
+ * VAULT design tokens.
+ *
+ * Graphite on near-black. Colour is rationed: green means "positive", amber
+ * and red mean "attention". Everything else is a step of the neutral scale,
+ * so when colour does appear it carries information.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces: each step is one notch lighter than the one beneath it. */
+  --bg: #08090a;
+  --surface-1: #0f1113;
+  --surface-2: #15181b;
+  --surface-3: #1c2024;
+  --hairline: rgba(255, 255, 255, 0.07);
+  --hairline-strong: rgba(255, 255, 255, 0.12);
+
+  /* Ink */
+  --text-1: #edeff0;
+  --text-2: #a3a9af;
+  --text-3: #6b7279;
+
+  /* Signal colours */
+  --positive: #35a877;
+  --positive-ink: #5cc497; /* same hue, lighter step: legible as small text */
+  --positive-wash: rgba(53, 168, 119, 0.1);
+  --caution: #d6a13f;
+  --negative: #dc6f55;
+  --negative-wash: rgba(220, 111, 85, 0.1);
+
+  /* Chart roles */
+  --series-accent: var(--positive);
+  --series-2: #6b8fd6; /* validated against --series-accent on --surface-1 (CVD dE 15.1) */
+  --series-3: #c98500; /* third series; validated all-pairs with the two above */
+  --series-neutral: #7b848d; /* single-series marks only: never used to tell series apart */
+  --series-muted: #3a4046;
+  --grid: #1b1f22;
+  --axis: #2a2f34;
+
+  /* Type */
+  --font: "Inter Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --fs-micro: 11px;
+  --fs-small: 12px;
+  --fs-body: 13px;
+  --fs-lead: 15px;
+  --fs-title: 20px;
+  --fs-figure: 24px;
+  --fs-hero: 52px;
+
+  /* Space: 4px grid */
+  --s1: 4px;
+  --s2: 8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 20px;
+  --s6: 24px;
+  --s8: 32px;
+  --s10: 40px;
+
+  --radius: 10px;
+  --radius-small: 6px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --fast: 120ms;
+  --slow: 320ms;
+
+  --sidebar: 228px;
+  --rail: 60px;
+}

@@ -1,0 +1,58 @@
+.chart {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.chart svg {
+  display: block;
+  overflow: visible;
+  border-radius: 4px;
+}
+.chart__tick {
+  fill: var(--text-3);
+  font-size: var(--fs-micro);
+  font-variant-numeric: tabular-nums;
+}
+.chart__tick--on {
+  fill: var(--text-1);
+}
+.chart__tooltip {
+  position: absolute;
+  top: 4px;
+  transform: translateX(-50%);
+  min-width: 176px;
+  padding: 10px 12px;
+  background: var(--surface-3);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-small);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 2;
+  font-size: var(--fs-small);
+}
+.chart__tooltip-title {
+  color: var(--text-1);
+  font-weight: 550;
+  margin-bottom: 6px;
+}
+.chart__tooltip-title span {
+  color: var(--text-3);
+  font-weight: 400;
+}
+.chart__tooltip-row {
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  line-height: 1.7;
+}
+.chart__tooltip-value {
+  color: var(--text-1);
+  padding-left: 12px;
+}
+.chart__swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}

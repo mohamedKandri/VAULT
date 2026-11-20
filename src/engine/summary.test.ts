@@ -15,7 +15,7 @@ const tx = (
   amount: string,
   categoryId: string,
   isFixed = false,
-): Transaction => ({ id: `t${nextId++}`, date, kind, amount: parseAmount(amount), categoryId, isFixed });
+): Transaction => ({ id: `t${nextId++}`, accountId: "current", date, kind, amount: parseAmount(amount), categoryId, isFixed });
 
 const ledger: Transaction[] = [
   tx("2026-10-01", "income", "12000", "salary"),
